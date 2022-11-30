@@ -73,6 +73,7 @@ graph <- fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_c
 graph
 
 ### ODSTRANENIE ZHLUKOV VELKOSTI 1
+removed_columns_first_reduction = 0
 rows_in_cluster = 0
 current_cluster = 1
 row_index = 0
@@ -89,6 +90,11 @@ for (i in 1:number_of_clusters) {
       message("Anomalia v zhluku: ", i, ", na indexe: ", row_index)
       heatmap_vectors_list_after_first_reduction[[row_index]] <- NULL
       heatmap_clusters_after_first_reduction <- heatmap_clusters_after_first_reduction[-c(row_index)]
+      if (removed_columns_first_reduction == 0 || removed_columns_first_reduction < 0) {
+        removed_columns_first_reduction <- heatmap_vectors_matrix_after_first_reduction[row_index,]
+      }else{
+        removed_columns_first_reduction <- rbind(removed_columns_first_reduction,heatmap_vectors_matrix_after_first_reduction[row_index,])
+      }
       heatmap_vectors_matrix_after_first_reduction <- heatmap_vectors_matrix_after_first_reduction[-row_index,]
     }
   }
@@ -173,6 +179,7 @@ index_to_to_remove = 0
 how_many_removed = 0
 heatmap_clusters_after_second_reduction = heatmap_clusters_after_first_reduction
 heatmap_vectors_matrix_after_second_reduction = heatmap_vectors_matrix_after_first_reduction
+removed_columns_second_reduction = 0
 for (j in 1:number_of_clusters) {
   message("Novy zhluk: ", j)
   for (i in 1:length(clusters_list[[j]])) {
@@ -183,6 +190,11 @@ for (j in 1:number_of_clusters) {
       index_to_to_remove = index_to_remove[i]
       message("Index v datach: ", index_to_remove[i])
       heatmap_clusters_after_second_reduction <- heatmap_clusters_after_second_reduction[-c(index_to_to_remove)]
+      if (removed_columns_second_reduction == 0 || removed_columns_second_reduction < 0) {
+        removed_columns_second_reduction <- heatmap_vectors_matrix_after_second_reduction[index_to_to_remove,]
+      }else{
+        removed_columns_second_reduction <- rbind(removed_columns_second_reduction,heatmap_vectors_matrix_after_second_reduction[index_to_to_remove,])
+      }
       heatmap_vectors_matrix_after_second_reduction <- heatmap_vectors_matrix_after_second_reduction[-index_to_to_remove,]
       how_many_removed <- how_many_removed + 1
     }
