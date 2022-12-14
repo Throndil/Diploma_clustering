@@ -132,8 +132,11 @@ graph
 
 
 tvoricVectorov <- function(window_width, step){
+<<<<<<< HEAD
   cycle_counter = 1
   
+=======
+>>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
   
   counter = 1
   row_counter = 1
@@ -166,6 +169,7 @@ tvoricVectorov <- function(window_width, step){
     row <- row + 1
     message("Processing image ", i, " of ", num_rows)
   }
+<<<<<<< HEAD
 
 }  
 
@@ -196,3 +200,6 @@ for(i in 1:num_rows){
 }
 vectors_matrix <- matrix(unlist(vectors_list), ncol=step*50, nrow=num_rows, byrow=TRUE)
 
+=======
+}  
+>>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b

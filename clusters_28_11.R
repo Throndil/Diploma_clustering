@@ -233,12 +233,41 @@ write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vect
 # d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=number_of_clusters))
 # table(d_tsne_1_original$cl_hierarchical)
 
+<<<<<<< HEAD
 tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=2, normalize = FALSE, max_iter = 2000)
 d_tsne_1 = as.data.frame(tsne_model_1$Y)
 d_tsne_1_original=d_tsne_1
 #fit_cluster_hierarchical=hclust(dist(d_tsne_1))
 d_tsne_1_original$cl_hierarchical = factor(heatmap_clusters_after_second_reduction)
 
+=======
+tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
+dim(heatmap_vectors_matrix_after_second_reduction)
+heatmap_vectors_matrix_after_second_reduction[1:3,1:4]
+plot(heatmap_vectors_matrix_after_second_reduction[1,], type = "l")
+#zobrazenie prvy riadok 1:50 stlpcov, po 1 riadok 51:100 stlpcov
+matplot(cbind(heatmap_vectors_matrix_after_second_reduction[1,1:50], +
+                heatmap_vectors_matrix_after_second_reduction[1,51:100]),
+                  type = "l")
+
+str(tsne_model_1)
+d_tsne_1 = as.data.frame(tsne_model_1$Y)
+d_tsne_1_original=d_tsne_1
+plot(d_tsne_1_original)
+fit_cluster_hierarchical=hclust(dist(d_tsne_1))
+d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=10))
+#d_tsne_1_original$cl_hierarchical = factor(heatmap_clusters_after_second_reduction)
+plot(fit_cluster_hierarchical)
+
+nblucst <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss")
+plot(nblucst)
+nblucst <- fviz_nbclust(heatmap_vectors_matrix_after_second_reduction, FUN = hcut, method = "wss")
+vector <- as.vector(nblucst$data)
+plot(as.numeric(vector[,1])*as.numeric(vector[,2]), type = "l")
+
+tsne11 <- d_tsne_1_original$cl_hierarchical
+table(tsne11)
+>>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
 table(d_tsne_1_original$cl_hierarchical)
 table(heatmap_clusters_after_second_reduction)
 #tsne_results <- Rtsne(heatmap_vectors_matrix_after_second_reduction, perplexity=30, check_duplicates = FALSE)
@@ -317,16 +346,30 @@ table(heatmap_clusters_after_second_reduction)
 # plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Spectral")
 # plot_h
 
+<<<<<<< HEAD
 
 plot_cluster=function(data, var_cluster,palette)  
 {
   ggplot(data, aes_string(x="V1", y="V2",color=var_cluster)) +
+=======
+#install.packages("plot3D")
+library(plot3D)
+#plot3d(d_tsne_1)
+
+plot_cluster=function(data, var_cluster,palette)  
+{
+  ggplot(data, aes_string(x="V1", y="V2",z="V3",color=var_cluster)) +
+>>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
     geom_point(size=2) +
     # geom_mark_ellipse(data = d_tsne_1_original %>% 
     #                     filter(d_tsne_1_original$cl_hierarchical == 2),
     #                   expand = unit(0.5, "mm")) +
     geom_mark_ellipse(data = d_tsne_1_original %>% 
+<<<<<<< HEAD
                         filter(d_tsne_1_original$cl_hierarchical == 1),
+=======
+                        filter(d_tsne_1_original$cl_hierarchical == 4),
+>>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
                       #fill = "red",
                       expand = unit(1, "mm")) +
     guides(colour=guide_legend(override.aes=list(size=10))) +
@@ -344,6 +387,10 @@ plot_cluster=function(data, var_cluster,palette)
 
 plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set3")
 plot_h
+<<<<<<< HEAD
+=======
+abline(v = 0)
+>>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
 ####################################################################################
 ##################          TESTING           ######################################
 ####################################################################################
