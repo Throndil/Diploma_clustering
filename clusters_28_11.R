@@ -14,6 +14,7 @@ library(factoextra)
 library(ggplot2)
 library(ggpubr)
 library(ape)
+library(RColorBrewer)
 
 names <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10",
            "V11","V12","V13","V14","V15","V16","V17","V18","V19","V20","V21","V22","V23","V24","V25",
@@ -118,7 +119,7 @@ graph
 
 
 ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
-heatmap_clusters_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
+heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_first_reduction)
 names(heatmap_clusters_dataframe) <- NULL
 write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_clustersv2.csv", row.names = FALSE, col.names = FALSE)
 
@@ -204,67 +205,145 @@ for (j in 1:number_of_clusters) {
   }
 }
 
-
 table(heatmap_clusters_after_first_reduction)
 table(heatmap_clusters_after_second_reduction)
 dim(heatmap_vectors_matrix_after_first_reduction)
 dim(heatmap_vectors_matrix_after_second_reduction)
 
-# heatmap_clusters_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
-# names(heatmap_clusters_dataframe) <- NULL
-# write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_clustersv2.csv", row.names = FALSE, col.names = FALSE)
+graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE)
+graph
+
+graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE)
+graph
+
+heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_second_reduction)
+names(heatmap_clusters_dataframe) <- NULL
+write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_cluster_second_reduction.csv", row.names = FALSE, col.names = FALSE)
+
+heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_second_reduction)
+names(heatmap_vectors_dataframe) <- NULL
+write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vectors_second_reduction.csv", row.names = FALSE,  col.names = FALSE)
+
+
 # 
-# heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
-# names(heatmap_vectors_dataframe) <- NULL
-# write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vectorsv2.csv", row.names = FALSE,  col.names = FALSE)
-# 
-# 
-# m = nrow(heatmap_vectors_matrix_after_first_reduction)  
-# n = ncol(heatmap_vectors_matrix_after_first_reduction)
-# y = heatmap_vectors_matrix_after_first_reduction[1:m,1:n] #y obsahuje maticu dat
-# z <- heatmap_clusters_after_first_reduction[1:m]   #z obsahuje vektor zhlukov
-# clusters_length = length(heatmap_clusters_after_first_reduction)
-# clusters_list <- list()
-# radius_list <- list()
-# list_counter = 1
-# cdf_counter = 1
-# percent = .99
-# length_d = 0
-# radius_dataframe = data.frame()
-# clusters_dataframe = data.frame()
-# 
-# for (i in 1:number_of_clusters) {
-#   message("Processing image ", i, " of ", number_of_clusters)
-#   v = y[z == i,]
-#   if (is.null(nrow(v))) {
-#     d = sqrt(v^2)
-#     clusters_list[[i]] = d
-#     length_d = length(d)
-#     clusters_matrix = matrix(unlist(clusters_list[[i]]), ncol=length_d, nrow=1, byrow=TRUE)
-#     d_dataframe = as.data.frame(clusters_matrix)
-#     write.xlsx2(d_dataframe, file="pilot_project_distance_matrix.xlsx", sheetName=sheet_names[i], append=TRUE, row.names=FALSE,col.names = FALSE)
-#     CDF = ecdf(d)
-#     q = quantile(CDF,c(percent))
-#     radius_dataframe = rbind(radius_dataframe,q)
-#   }else{
-#     c = colMeans(v)
-#     u = t(v) - c
-#     d = sqrt(colSums(u^2))
-#     clusters_list[[i]] = d
-#     length_d = length(d)
-#     clusters_matrix = matrix(unlist(clusters_list[[i]]), ncol=length_d, nrow=1, byrow=TRUE)
-#     d_dataframe = as.data.frame(clusters_matrix)
-#     write.xlsx2(d_dataframe, file="pilot_project_distance_matrix.xlsx", sheetName=sheet_names[i], append=TRUE, row.names=FALSE,col.names = FALSE)
-#     CDF = ecdf(d)
-#     q = quantile(CDF,c(percent))
-#     radius_dataframe = rbind(radius_dataframe,q)
-#   }
-#   if (i == number_of_clusters) {
-#     write.xlsx(radius_dataframe,file = "pilot_project_radius.xlsx", sheetName = "Clusters_radius",row.names = FALSE,col.names = FALSE,append = TRUE)
-#   }
+# tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=TRUE, perplexity=230, theta=0.0, dims=3, normalize = FALSE)
+# d_tsne_1 = as.data.frame(tsne_model_1$Y)
+# d_tsne_1_original=d_tsne_1
+# fit_cluster_hierarchical=hclust(dist(d_tsne_1))
+# d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=number_of_clusters))
+# table(d_tsne_1_original$cl_hierarchical)
+
+tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=2, normalize = FALSE, max_iter = 2000)
+d_tsne_1 = as.data.frame(tsne_model_1$Y)
+d_tsne_1_original=d_tsne_1
+#fit_cluster_hierarchical=hclust(dist(d_tsne_1))
+d_tsne_1_original$cl_hierarchical = factor(heatmap_clusters_after_second_reduction)
+
+table(d_tsne_1_original$cl_hierarchical)
+table(heatmap_clusters_after_second_reduction)
+#tsne_results <- Rtsne(heatmap_vectors_matrix_after_second_reduction, perplexity=30, check_duplicates = FALSE)
+#plot(tsne_results$Y, col = "blue", pch = 19, cex = 1.5)
+#plot(tsne_results$Y, col = "black", bg= heatmap_clusters_after_second_reduction$louvain, pch = 21, cex = 1)
+
+# plot_cluster=function(data, var_cluster, palette)  
+# {
+#   ggplot(data, aes_string(x="V1", y="V2", color=var_cluster)) +
+#     geom_point(size=1.2) +
+#     guides(colour=guide_legend(override.aes=list(size=10))) +
+#     xlab("") + ylab("") +
+#     ggtitle("") +
+#     theme_light(base_size=20) +
+#     theme(axis.text.x=element_blank(),
+#           axis.text.y=element_blank(),
+#           legend.direction = "horizontal", 
+#           legend.position = "bottom",
+#           legend.box = "horizontal") + 
+#     scale_colour_brewer(palette = palette) 
 # }
+# 
+# plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set1")
+# plot_h
+########### https://www.r-bloggers.com/2017/03/playing-with-dimensions-from-clustering-pca-t-sne-to-carl-sagan/
+
+# plot_cluster=function(data, var_cluster,palette)  
+# {
+#   ggplot(data, aes_string(x="V1", y="V2", color=var_cluster)) +
+#     geom_point(size=1.2) +
+#     guides(colour=guide_legend(override.aes=list(size=10))) +
+#     xlab("") + ylab("") +
+#     ggtitle("") +
+#     theme_light(base_size=10) +
+#     theme(axis.text.x=element_blank(),
+#           axis.text.y=element_blank(),
+#           legend.direction = "horizontal", 
+#           legend.position = "bottom",
+#           legend.box = "horizontal")+ 
+#     scale_colour_brewer(palette = palette) 
+# 
+# }
+# 
+# plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Spectral")
+# plot_h
 
 
+
+
+
+# plot_cluster=function(data, var_cluster,palette)  
+# {
+#   ggplot(data, aes_string(x="V1", y="V2", color=var_cluster)) +
+#     geom_point(size=1.2) +
+#     # geom_mark_ellipse(data = d_tsne_1_original %>% 
+#     #                     filter(d_tsne_1_original$cl_hierarchical == 2),
+#     #                   expand = unit(0.5, "mm")) +
+#     geom_mark_ellipse(data = d_tsne_1_original %>% 
+#                         filter(d_tsne_1_original$cl_hierarchical == 9),
+#                       expand = unit(0.99, "mm")) +
+#     guides(colour=guide_legend(override.aes=list(size=10))) +
+#     xlab("") + ylab("") +
+#     ggtitle("") +
+#     theme_light(base_size=10) +
+#     theme(axis.text.x=element_blank(),
+#           axis.text.y=element_blank(),
+#           legend.direction = "horizontal", 
+#           legend.position = "bottom",
+#           legend.box = "horizontal")+ 
+#     scale_colour_brewer(palette = palette) 
+#   
+# }
+# 
+#   
+# ### https://www.google.com/search?q=r+brewer+pal&oq=r+brewer+pal&aqs=chrome..69i57j69i64l3.3343j0j7&sourceid=chrome&ie=UTF-8#imgrc=o2H_xJhgKgHvxM
+# plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Spectral")
+# plot_h
+
+
+plot_cluster=function(data, var_cluster,palette)  
+{
+  ggplot(data, aes_string(x="V1", y="V2",color=var_cluster)) +
+    geom_point(size=2) +
+    # geom_mark_ellipse(data = d_tsne_1_original %>% 
+    #                     filter(d_tsne_1_original$cl_hierarchical == 2),
+    #                   expand = unit(0.5, "mm")) +
+    geom_mark_ellipse(data = d_tsne_1_original %>% 
+                        filter(d_tsne_1_original$cl_hierarchical == 1),
+                      #fill = "red",
+                      expand = unit(1, "mm")) +
+    guides(colour=guide_legend(override.aes=list(size=10))) +
+    xlab("") + ylab("") +
+    ggtitle("") +
+    theme_light(base_size=10) +
+    theme(axis.text.x=element_blank(),
+          axis.text.y=element_blank(),
+          legend.direction = "horizontal", 
+          legend.position = "bottom",
+          legend.box = "horizontal")+ 
+    scale_colour_brewer(palette = palette) 
+  
+}
+
+plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set3")
+plot_h
 ####################################################################################
 ##################          TESTING           ######################################
 ####################################################################################
