@@ -233,14 +233,14 @@ write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vect
 # d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=number_of_clusters))
 # table(d_tsne_1_original$cl_hierarchical)
 
-<<<<<<< HEAD
-tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=2, normalize = FALSE, max_iter = 2000)
+
+tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
 d_tsne_1 = as.data.frame(tsne_model_1$Y)
 d_tsne_1_original=d_tsne_1
-#fit_cluster_hierarchical=hclust(dist(d_tsne_1))
-d_tsne_1_original$cl_hierarchical = factor(heatmap_clusters_after_second_reduction)
+fit_cluster_hierarchical=hclust(dist(d_tsne_1))
+d_tsne_1_original$cl_hierarchical = factor(fit_cluster_hierarchical)
 
-=======
+
 tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
 dim(heatmap_vectors_matrix_after_second_reduction)
 heatmap_vectors_matrix_after_second_reduction[1:3,1:4]
@@ -261,15 +261,213 @@ plot(fit_cluster_hierarchical)
 
 nblucst <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss")
 plot(nblucst)
-nblucst <- fviz_nbclust(heatmap_vectors_matrix_after_second_reduction, FUN = hcut, method = "wss")
+#nblucst <- fviz_nbclust(heatmap_vectors_matrix_after_second_reduction, FUN = hcut, method = "wss")
 vector <- as.vector(nblucst$data)
 plot(as.numeric(vector[,1])*as.numeric(vector[,2]), type = "l")
 
 tsne11 <- d_tsne_1_original$cl_hierarchical
 table(tsne11)
->>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
+
 table(d_tsne_1_original$cl_hierarchical)
 table(heatmap_clusters_after_second_reduction)
+
+## https://stackoverflow.com/questions/40821591/how-to-print-the-optimal-number-of-clusters-using-fviz-nbclust
+## http://www.sthda.com/english/articles/29-cluster-validation-essentials/96-determiningthe-optimal-number-of-clusters-3-must-know-methods/
+nblucst_hclust <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss", print.summary = TRUE)
+nblucst_hclust_data <- nblucst_hclust$data
+max_cluster_hclust <- as.numeric(nblucst_hclust_data$clusters[which.max(nblucst_hclust_data$y)])
+plot(max_cluster_hclust)
+plot(nblucst_hclust)
+
+nbclust_kmeans <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE)
+nbclust_kmeans_data <- nbclust_kmeans$data
+max_cluster_kmeans <- as.numeric(nbclust_kmeans_data$clusters[which.max(nbclust_kmeans_data$y)])
+plot(max_cluster_kmeans)
+plot(nbclust_kmeans)
+
+nbclust_pam <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss")
+nbclust_pam_data <- nbclust_pam$data
+max_cluster_pam <- as.numeric(nbclust_pam_data$clusters[which.max(nbclust_pam_data$y)])
+plot(max_cluster_pam)
+plot(nbclust_pam)
+
+nbclust_clara <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss")
+nbclust_clara_data <- nbclust_clara$data
+max_cluster_clara <- as.numeric(nbclust_clara_data$clusters[which.max(nbclust_clara_data$y)])
+plot(max_cluster_clara)
+plot(nbclust_clara)
+
+nbclust_fanny <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "wss")
+nbclust_fanny_data <- nbclust_fanny$data
+max_cluster_fanny <- as.numeric(nbclust_fanny_data$clusters[which.max(nbclust_fanny_data$y)])
+plot(max_cluster_fanny)
+plot(nbclust_fanny)
+
+## SILHOUTTE
+nblucst_hclust_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "silhouette", print.summary = TRUE)
+nblucst_hclust_data_silhoutte <- nblucst_hclust_silhoutte$data
+max_cluster_hclust_silhoutte <- as.numeric(nblucst_hclust_data_silhoutte$clusters[which.max(nblucst_hclust_data_silhoutte$y)])
+plot(max_cluster_hclust_silhoutte)
+plot(nblucst_hclust_silhoutte)
+
+nbclust_kmeans_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "silhouette", print.summary = TRUE)
+nbclust_kmeans_data_silhoutte <- nbclust_kmeans_silhoutte$data
+max_cluster_kmeans_silhoutte <- as.numeric(nbclust_kmeans_data_silhoutte$clusters[which.max(nbclust_kmeans_data_silhoutte$y)])
+plot(max_cluster_kmeans_silhoutte)
+plot(nbclust_kmeans_silhoutte)
+
+nbclust_pam_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "silhouette")
+nbclust_pam_data_silhoutte <- nbclust_pam_silhoutte$data
+max_cluster_pam_silhoutte <- as.numeric(nbclust_pam_data_silhoutte$clusters[which.max(nbclust_pam_data_silhoutte$y)])
+plot(max_cluster_pam_silhoutte)
+plot(nbclust_pam_silhoutte)
+
+nbclust_clara_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "silhouette")
+nbclust_clara_data_silhoutte <- nbclust_clara_silhoutte$data
+max_cluster_clara_silhoutte <- as.numeric(nbclust_clara_data_silhoutte$clusters[which.max(nbclust_clara_data_silhoutte$y)])
+plot(max_cluster_clara_silhoutte)
+plot(nbclust_clara_silhoutte)
+
+nbclust_fanny_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "silhouette")
+nbclust_fanny_data_silhoutte <- nbclust_fanny_silhoutte$data
+max_cluster_fanny_silhoutte <- as.numeric(nbclust_fanny_data_silhoutte$clusters[which.max(nbclust_fanny_data_silhoutte$y)])
+plot(max_cluster_fanny_silhoutte)
+plot(nbclust_fanny_silhoutte)
+
+## GAP_STAT
+nblucst_hclust_gap_stat <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "gap_stat", print.summary = TRUE)
+nblucst_hclust_data_gap_stat <- nblucst_hclust_gap_stat$data
+max_cluster_hclust_gap_stat <- as.numeric(nblucst_hclust_data_gap_stat$clusters[which.max(nblucst_hclust_data_gap_stat$y)])
+plot(max_cluster_hclust_gap_stat)
+plot(nblucst_hclust_gap_stat)
+
+## https://www.biostars.org/p/320710/
+MyKmeansFUN <- function(x,k) list(cluster=kmeans(x, k, iter.max=50))
+nbclust_kmeans_gap_stat <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = MyKmeansFUN, method = "gap_stat", print.summary = TRUE)
+nbclust_kmeans_data_gap_stat <- nbclust_kmeans_gap_stat$data
+max_cluster_kmeans_gap_stat <- as.numeric(nbclust_kmeans_data_gap_stat$clusters[which.max(nbclust_kmeans_data_gap_stat$y)])
+plot(max_cluster_kmeans_gap_stat)
+plot(nbclust_kmeans_gap_stat)
+
+nbclust_pam_gap_stat <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "gap_stat")
+nbclust_pam_data_gap_stat <- nbclust_pam_gap_stat$data
+max_cluster_pam_gap_stat <- as.numeric(nbclust_pam_data_gap_stat$clusters[which.max(nbclust_pam_data_gap_stat$y)])
+plot(max_cluster_pam_gap_stat)
+plot(nbclust_pam_gap_stat)
+
+nbclust_clara_gap_stat <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "gap_stat")
+nbclust_clara_data_gap_stat <- nbclust_clara_gap_stat$data
+max_cluster_clara_gap_stat <- as.numeric(nbclust_clara_data_gap_stat$clusters[which.max(nbclust_clara_data_gap_stat$y)])
+plot(max_cluster_clara_gap_stat)
+plot(nbclust_clara_gap_stat)
+
+nbclust_fanny_gap_stat<- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "gap_stat")
+nbclust_fanny_data_gap_stat <- nbclust_fanny_gap_stat$data
+max_cluster_fanny_gap_stat <- as.numeric(nbclust_fanny_data_gap_stat$clusters[which.max(nbclust_fanny_data_gap_stat$y)])
+plot(max_cluster_fanny_gap_stat)
+plot(nbclust_fanny_gap_stat)
+
+## MANHATTAN DISTANCE
+manhattan_dist <- dist(d_tsne_1, method = "manhattan")
+nblucst_hclust_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss", print.summary = TRUE, diss = manhattan_dist)
+nblucst_hclust_data_wss_mahal <- nblucst_hclust_wss_mahal$data
+max_cluster_hclust_wss_mahal <- as.numeric(nblucst_hclust_data_wss_mahal$clusters[which.max(nblucst_hclust_data_wss_mahal$y)])
+plot(max_cluster_hclust_wss_mahal)
+plot(nblucst_hclust_wss_mahal)
+
+nbclust_kmeans_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE, diss = manhattan_dist)
+nbclust_kmeans_data_wss_mahal <- nbclust_kmeans_wss_mahal$data
+max_cluster_kmeans_wss_mahal <- as.numeric(nbclust_kmeans_data_wss_mahal$clusters[which.max(nbclust_kmeans_data_wss_mahal$y)])
+plot(max_cluster_kmeans_wss_mahal)
+plot(nbclust_kmeans_wss_mahal)
+
+nbclust_pam_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss", diss = manhattan_dist)
+nbclust_pam_data_wss_mahal <- nbclust_pam_wss_mahal$data
+max_cluster_pam_wss_mahal <- as.numeric(nbclust_pam_data_wss_mahal$clusters[which.max(nbclust_pam_data_wss_mahal$y)])
+plot(max_cluster_pam_wss_mahal)
+plot(nbclust_pam_wss_mahal)
+
+nbclust_clara_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss", diss = manhattan_dist)
+nbclust_clara_data_wss_mahal <- nbclust_clara_wss_mahal$data
+max_cluster_clara_wss_mahal <- as.numeric(nbclust_clara_data_wss_mahal$clusters[which.max(nbclust_clara_data_wss_mahal$y)])
+plot(max_cluster_clara_wss_mahal)
+plot(nbclust_clara_wss_mahal)
+
+nbclust_fanny_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "wss", diss = manhattan_dist)
+nbclust_fanny_data_wss_mahal <- nbclust_fanny_wss_mahal$data
+max_cluster_fanny_wss_mahal <- as.numeric(nbclust_fanny_data_wss_mahal$clusters[which.max(nbclust_fanny_data_wss_mahal$y)])
+plot(max_cluster_fanny_wss_mahal)
+plot(nbclust_fanny_wss_mahal)
+
+
+
+## https://towardsdatascience.com/mahalonobis-distance-and-outlier-detection-in-r-cb9c37576d7d
+d_tsne_1_original_center = colMeans(d_tsne_1_original)
+d_tsne_1_original_covariance = cov(d_tsne_1_original)
+mahalanobis_dist <- mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance)
+## https://statisticsglobe.com/r-warning-items-to-replace-not-multiple-of-length
+## WSS_MAHALANOBIS
+nblucst_hclust_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss", print.summary = TRUE, diss = mahalanobis_dist)
+nblucst_hclust_data_wss_mahal <- nblucst_hclust_wss_mahal$data
+max_cluster_hclust_wss_mahal <- as.numeric(nblucst_hclust_data_wss_mahal$clusters[which.max(nblucst_hclust_data_wss_mahal$y)])
+plot(max_cluster_hclust_wss_mahal)
+plot(nblucst_hclust_wss_mahal)
+
+nbclust_kmeans_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE, diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_kmeans_data_wss_mahal <- nbclust_kmeans_wss_mahal$data
+max_cluster_kmeans_wss_mahal <- as.numeric(nbclust_kmeans_data_wss_mahal$clusters[which.max(nbclust_kmeans_data_wss_mahal$y)])
+plot(max_cluster_kmeans_wss_mahal)
+plot(nbclust_kmeans_wss_mahal)
+
+nbclust_pam_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_pam_data_wss_mahal <- nbclust_pam_wss_mahal$data
+max_cluster_pam_wss_mahal <- as.numeric(nbclust_pam_data_wss_mahal$clusters[which.max(nbclust_pam_data_wss_mahal$y)])
+plot(max_cluster_pam_wss_mahal)
+plot(nbclust_pam_wss_mahal)
+
+nbclust_clara_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_clara_data_wss_mahal <- nbclust_clara_wss_mahal$data
+max_cluster_clara_wss_mahal <- as.numeric(nbclust_clara_data_wss_mahal$clusters[which.max(nbclust_clara_data_wss_mahal$y)])
+plot(max_cluster_clara_wss_mahal)
+plot(nbclust_clara_wss_mahal)
+
+nbclust_fanny_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "wss", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_fanny_data_wss_mahal <- nbclust_fanny_wss_mahal$data
+max_cluster_fanny_wss_mahal <- as.numeric(nbclust_fanny_data_wss_mahal$clusters[which.max(nbclust_fanny_data_wss_mahal$y)])
+plot(max_cluster_fanny_wss_mahal)
+plot(nbclust_fanny_wss_mahal)
+
+## SILHOUETTE_MAHALANOBIS
+nblucst_hclust_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "silhouette", print.summary = TRUE, diss = mahalanobis_dist)
+nblucst_hclust_data_silhouette_mahal <- nblucst_hclust_silhouette_mahal$data
+max_cluster_hclust_silhouette_mahal <- as.numeric(nblucst_hclust_data_silhouette_mahal$clusters[which.max(nblucst_hclust_data_silhouette_mahal$y)])
+plot(max_cluster_hclust_silhouette_mahal)
+plot(nblucst_hclust_silhouette_mahal)
+
+nbclust_kmeans_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "silhouette", print.summary = TRUE, diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_kmeans_data_silhouette_mahal <- nbclust_kmeans_silhouette_mahal$data
+max_cluster_kmeans_silhouette_mahal <- as.numeric(nbclust_kmeans_data_silhouette_mahal$clusters[which.max(nbclust_kmeans_data_silhouette_mahal$y)])
+plot(max_cluster_kmeans_silhouette_mahal)
+plot(nbclust_kmeans_silhouette_mahal)
+
+nbclust_pam_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_pam_data_silhouette_mahal <- nbclust_pam_silhouette_mahal$data
+max_cluster_pam_silhouette_mahal <- as.numeric(nbclust_pam_data_silhouette_mahal$clusters[which.max(nbclust_pam_data_silhouette_mahal$y)])
+plot(max_cluster_pam_silhouette_mahal)
+plot(nbclust_pam_silhouette_mahal)
+
+nbclust_clara_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_clara_silhouette_mahal <- nbclust_clara_silhouette_mahal$data
+max_cluster_clara_silhouette_mahal <- as.numeric(nbclust_clara_data_silhouette_mahal$clusters[which.max(nbclust_clara_data_silhouette_mahal$y)])
+plot(max_cluster_clara_silhouette_mahal)
+plot(nbclust_clara_silhouette_mahal)
+
+nbclust_fanny_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_fanny_data_silhouette_mahal <- nbclust_fanny_silhouette_mahal$data
+max_cluster_fanny_silhouette_mahal <- as.numeric(nbclust_fanny_data_silhouette_mahal$clusters[which.max(nbclust_fanny_data_silhouette_mahal$y)])
+plot(max_cluster_fanny_silhouette_mahal)
+plot(nbclust_fanny_silhouette_mahal)
+
 #tsne_results <- Rtsne(heatmap_vectors_matrix_after_second_reduction, perplexity=30, check_duplicates = FALSE)
 #plot(tsne_results$Y, col = "blue", pch = 19, cex = 1.5)
 #plot(tsne_results$Y, col = "black", bg= heatmap_clusters_after_second_reduction$louvain, pch = 21, cex = 1)
@@ -346,12 +544,8 @@ table(heatmap_clusters_after_second_reduction)
 # plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Spectral")
 # plot_h
 
-<<<<<<< HEAD
 
-plot_cluster=function(data, var_cluster,palette)  
-{
-  ggplot(data, aes_string(x="V1", y="V2",color=var_cluster)) +
-=======
+
 #install.packages("plot3D")
 library(plot3D)
 #plot3d(d_tsne_1)
@@ -359,17 +553,13 @@ library(plot3D)
 plot_cluster=function(data, var_cluster,palette)  
 {
   ggplot(data, aes_string(x="V1", y="V2",z="V3",color=var_cluster)) +
->>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
     geom_point(size=2) +
     # geom_mark_ellipse(data = d_tsne_1_original %>% 
     #                     filter(d_tsne_1_original$cl_hierarchical == 2),
     #                   expand = unit(0.5, "mm")) +
     geom_mark_ellipse(data = d_tsne_1_original %>% 
-<<<<<<< HEAD
                         filter(d_tsne_1_original$cl_hierarchical == 1),
-=======
                         filter(d_tsne_1_original$cl_hierarchical == 4),
->>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
                       #fill = "red",
                       expand = unit(1, "mm")) +
     guides(colour=guide_legend(override.aes=list(size=10))) +
@@ -387,10 +577,7 @@ plot_cluster=function(data, var_cluster,palette)
 
 plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set3")
 plot_h
-<<<<<<< HEAD
-=======
 abline(v = 0)
->>>>>>> 7d6120f9b4b5d44ef80509c982013eabdda4376b
 ####################################################################################
 ##################          TESTING           ######################################
 ####################################################################################
