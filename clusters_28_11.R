@@ -238,7 +238,7 @@ tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplic
 d_tsne_1 = as.data.frame(tsne_model_1$Y)
 d_tsne_1_original=d_tsne_1
 fit_cluster_hierarchical=hclust(dist(d_tsne_1))
-d_tsne_1_original$cl_hierarchical = factor(fit_cluster_hierarchical)
+#d_tsne_1_original$cl_hierarchical = factor(fit_cluster_hierarchical)
 
 
 tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
@@ -314,6 +314,8 @@ nbclust_kmeans_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, meth
 nbclust_kmeans_data_silhoutte <- nbclust_kmeans_silhoutte$data
 max_cluster_kmeans_silhoutte <- as.numeric(nbclust_kmeans_data_silhoutte$clusters[which.max(nbclust_kmeans_data_silhoutte$y)])
 plot(max_cluster_kmeans_silhoutte)
+y.vector <- as.vector(nbclust_kmeans_silhoutte$data$clusters)
+points(nbclust_kmeans_silhoutte$data$clusters)
 plot(nbclust_kmeans_silhoutte)
 
 nbclust_pam_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "silhouette")
@@ -370,36 +372,66 @@ plot(nbclust_fanny_gap_stat)
 ## MANHATTAN DISTANCE
 manhattan_dist <- dist(d_tsne_1, method = "manhattan")
 nblucst_hclust_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss", print.summary = TRUE, diss = manhattan_dist)
-nblucst_hclust_data_wss_mahal <- nblucst_hclust_wss_mahal$data
-max_cluster_hclust_wss_mahal <- as.numeric(nblucst_hclust_data_wss_mahal$clusters[which.max(nblucst_hclust_data_wss_mahal$y)])
-plot(max_cluster_hclust_wss_mahal)
-plot(nblucst_hclust_wss_mahal)
+nblucst_hclust_data_wss_manhattan <- nblucst_hclust_wss_manhattan$data
+max_cluster_hclust_wss_manhattan <- as.numeric(nblucst_hclust_data_wss_manhattan$clusters[which.max(nblucst_hclust_data_wss_manhattan$y)])
+plot(max_cluster_hclust_wss_manhattan)
+plot(nblucst_hclust_wss_manhattan)
 
-nbclust_kmeans_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE, diss = manhattan_dist)
-nbclust_kmeans_data_wss_mahal <- nbclust_kmeans_wss_mahal$data
-max_cluster_kmeans_wss_mahal <- as.numeric(nbclust_kmeans_data_wss_mahal$clusters[which.max(nbclust_kmeans_data_wss_mahal$y)])
-plot(max_cluster_kmeans_wss_mahal)
-plot(nbclust_kmeans_wss_mahal)
+nbclust_kmeans_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE, diss = manhattan_dist)
+nbclust_kmeans_data_wss_manhattan <- nbclust_kmeans_wss_manhattan$data
+max_cluster_kmeans_wss_manhattan <- as.numeric(nbclust_kmeans_data_wss_manhattan$clusters[which.max(nbclust_kmeans_data_wss_manhattan$y)])
+plot(max_cluster_kmeans_wss_manhattan)
+plot(nbclust_kmeans_wss_manhattan)
 
-nbclust_pam_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss", diss = manhattan_dist)
-nbclust_pam_data_wss_mahal <- nbclust_pam_wss_mahal$data
-max_cluster_pam_wss_mahal <- as.numeric(nbclust_pam_data_wss_mahal$clusters[which.max(nbclust_pam_data_wss_mahal$y)])
-plot(max_cluster_pam_wss_mahal)
-plot(nbclust_pam_wss_mahal)
+nbclust_pam_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss", diss = manhattan_dist)
+nbclust_pam_data_wss_manhattan <- nbclust_pam_wss_manhattan$data
+max_cluster_pam_wss_manhattan <- as.numeric(nbclust_pam_data_wss_manhattan$clusters[which.max(nbclust_pam_data_wss_manhattan$y)])
+plot(max_cluster_pam_wss_manhattan)
+plot(nbclust_pam_wss_manhattan)
 
-nbclust_clara_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss", diss = manhattan_dist)
-nbclust_clara_data_wss_mahal <- nbclust_clara_wss_mahal$data
-max_cluster_clara_wss_mahal <- as.numeric(nbclust_clara_data_wss_mahal$clusters[which.max(nbclust_clara_data_wss_mahal$y)])
-plot(max_cluster_clara_wss_mahal)
-plot(nbclust_clara_wss_mahal)
+nbclust_clara_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss", diss = manhattan_dist)
+nbclust_clara_data_wss_manhattan <- nbclust_clara_wss_manhattan$data
+max_cluster_clara_wss_manhattan <- as.numeric(nbclust_clara_data_wss_manhattan$clusters[which.max(nbclust_clara_data_wss_manhattan$y)])
+plot(max_cluster_clara_wss_manhattan)
+plot(nbclust_clara_wss_manhattan)
 
-nbclust_fanny_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "wss", diss = manhattan_dist)
-nbclust_fanny_data_wss_mahal <- nbclust_fanny_wss_mahal$data
-max_cluster_fanny_wss_mahal <- as.numeric(nbclust_fanny_data_wss_mahal$clusters[which.max(nbclust_fanny_data_wss_mahal$y)])
-plot(max_cluster_fanny_wss_mahal)
-plot(nbclust_fanny_wss_mahal)
+nbclust_fanny_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "wss", diss = manhattan_dist)
+nbclust_fanny_data_wss_manhattan <- nbclust_fanny_wss_manhattan$data
+max_cluster_fanny_wss_manhattan <- as.numeric(nbclust_fanny_data_wss_manhattan$clusters[which.max(nbclust_fanny_data_wss_manhattan$y)])
+plot(max_cluster_fanny_wss_manhattan)
+plot(nbclust_fanny_wss_manhattan)
 
+## MANHATTAN DISTANCE - SILHOUETTE
+manhattan_dist <- dist(d_tsne_1, method = "manhattan")
+nblucst_hclust_silhouette_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "silhouette", print.summary = TRUE, diss = manhattan_dist)
+nblucst_hclust_data_silhouette_manhattan <- nblucst_hclust_silhouette_manhattan$data
+max_cluster_hclust_silhouette_manhattan <- as.numeric(nblucst_hclust_data_silhouette_manhattan$clusters[which.max(nblucst_hclust_data_silhouette_manhattan$y)])
+plot(max_cluster_hclust_silhouette_manhattan)
+plot(nblucst_hclust_silhouette_manhattan)
 
+nbclust_kmeans_silhouette_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "silhouette", print.summary = TRUE, diss = manhattan_dist)
+nbclust_kmeans_data_silhouette_manhattan <- nbclust_kmeans_silhouette_manhattan$data
+max_cluster_kmeans_silhouette_manhattan <- as.numeric(nbclust_kmeans_data_silhouette_manhattan$clusters[which.max(nbclust_kmeans_data_silhouette_manhattan$y)])
+plot(max_cluster_kmeans_silhouette_manhattan)
+plot(nbclust_kmeans_silhouette_manhattan)
+
+nbclust_pam_silhouette_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "silhouette", diss = manhattan_dist)
+nbclust_pam_data_silhouette_manhattan <- nbclust_pam_silhouette_manhattan$data
+max_cluster_pam_silhouette_manhattan <- as.numeric(nbclust_pam_data_silhouette_manhattan$clusters[which.max(nbclust_pam_data_silhouette_manhattan$y)])
+plot(max_cluster_pam_silhouette_manhattan)
+plot(nbclust_pam_silhouette_manhattan)
+
+nbclust_clara_silhouette_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "silhouette", diss = manhattan_dist)
+nbclust_clara_data_silhouette_manhattan <- nbclust_clara_silhouette_manhattan$data
+max_cluster_clara_silhouette_manhattan <- as.numeric(nbclust_clara_data_silhouette_manhattan$clusters[which.max(nbclust_clara_data_silhouette_manhattan$y)])
+plot(max_cluster_clara_silhouette_manhattan)
+plot(nbclust_clara_silhouette_manhattan)
+
+nbclust_fanny_silhouette_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "silhouette", diss = manhattan_dist)
+nbclust_fanny_data_silhouette_manhattan <- nbclust_fanny_silhouette_manhattan$data
+max_cluster_fanny_silhouette_manhattan <- as.numeric(nbclust_fanny_data_silhouette_manhattan$clusters[which.max(nbclust_fanny_data_silhouette_manhattan$y)])
+plot(max_cluster_fanny_silhouette_manhattan)
+plot(nbclust_fanny_silhouette_manhattan)
 
 ## https://towardsdatascience.com/mahalonobis-distance-and-outlier-detection-in-r-cb9c37576d7d
 d_tsne_1_original_center = colMeans(d_tsne_1_original)
@@ -438,31 +470,39 @@ plot(max_cluster_fanny_wss_mahal)
 plot(nbclust_fanny_wss_mahal)
 
 ## SILHOUETTE_MAHALANOBIS
-nblucst_hclust_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "silhouette", print.summary = TRUE, diss = mahalanobis_dist)
+tsne_model_2 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=2, normalize = FALSE, max_iter = 2000)
+d_tsne_2 = as.data.frame(tsne_model_2$Y)
+d_tsne_2_original=d_tsne_2
+
+d_tsne_2_original_center = colMeans(d_tsne_2_original)
+d_tsne_2_original_covariance = cov(d_tsne_2_original)
+mahalanobis_dist_2 <- mahalanobis(x = d_tsne_2_original,center = d_tsne_2_original_center,cov = d_tsne_2_original_covariance)
+
+nblucst_hclust_silhouette_mahal <- fviz_nbclust(d_tsne_2,k.max = 20, FUN = hcut, method = "silhouette", print.summary = TRUE, diss = mahalanobis_dist_2)
 nblucst_hclust_data_silhouette_mahal <- nblucst_hclust_silhouette_mahal$data
 max_cluster_hclust_silhouette_mahal <- as.numeric(nblucst_hclust_data_silhouette_mahal$clusters[which.max(nblucst_hclust_data_silhouette_mahal$y)])
 plot(max_cluster_hclust_silhouette_mahal)
 plot(nblucst_hclust_silhouette_mahal)
 
-nbclust_kmeans_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "silhouette", print.summary = TRUE, diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_kmeans_silhouette_mahal <- fviz_nbclust(d_tsne_2,k.max = 20, FUN = kmeans, method = "silhouette", print.summary = TRUE, diss = mahalanobis_dist_2)
 nbclust_kmeans_data_silhouette_mahal <- nbclust_kmeans_silhouette_mahal$data
 max_cluster_kmeans_silhouette_mahal <- as.numeric(nbclust_kmeans_data_silhouette_mahal$clusters[which.max(nbclust_kmeans_data_silhouette_mahal$y)])
 plot(max_cluster_kmeans_silhouette_mahal)
 plot(nbclust_kmeans_silhouette_mahal)
 
-nbclust_pam_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_pam_silhouette_mahal <- fviz_nbclust(d_tsne_2,k.max = 20, FUN = cluster::pam, method = "silhouette", diss = mahalanobis(x = d_tsne_2_original,center = d_tsne_2_original_center,cov = d_tsne_2_original_covariance))
 nbclust_pam_data_silhouette_mahal <- nbclust_pam_silhouette_mahal$data
 max_cluster_pam_silhouette_mahal <- as.numeric(nbclust_pam_data_silhouette_mahal$clusters[which.max(nbclust_pam_data_silhouette_mahal$y)])
 plot(max_cluster_pam_silhouette_mahal)
 plot(nbclust_pam_silhouette_mahal)
 
-nbclust_clara_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_clara_silhouette_mahal <- fviz_nbclust(d_tsne_2,k.max = 20, FUN = cluster::clara, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
 nbclust_clara_silhouette_mahal <- nbclust_clara_silhouette_mahal$data
 max_cluster_clara_silhouette_mahal <- as.numeric(nbclust_clara_data_silhouette_mahal$clusters[which.max(nbclust_clara_data_silhouette_mahal$y)])
 plot(max_cluster_clara_silhouette_mahal)
 plot(nbclust_clara_silhouette_mahal)
 
-nbclust_fanny_silhouette_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
+nbclust_fanny_silhouette_mahal <- fviz_nbclust(d_tsne_2,k.max = 20, FUN = cluster::fanny, method = "silhouette", diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
 nbclust_fanny_data_silhouette_mahal <- nbclust_fanny_silhouette_mahal$data
 max_cluster_fanny_silhouette_mahal <- as.numeric(nbclust_fanny_data_silhouette_mahal$clusters[which.max(nbclust_fanny_data_silhouette_mahal$y)])
 plot(max_cluster_fanny_silhouette_mahal)
