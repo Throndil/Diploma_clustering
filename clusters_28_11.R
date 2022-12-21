@@ -15,6 +15,7 @@ library(ggplot2)
 library(ggpubr)
 library(ape)
 library(RColorBrewer)
+library(functional)
 
 names <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10",
            "V11","V12","V13","V14","V15","V16","V17","V18","V19","V20","V21","V22","V23","V24","V25",
@@ -22,6 +23,11 @@ names <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10",
            "V41","V42","V43","V44","V45","V46","V47","V48","V49","V50")
 
 sheet_names <- c("Cluster1","Cluster2","Cluster3","Cluster4","Cluster5","Cluster6","Cluster7","Cluster8","Cluster9","Cluster10")
+distance_names <- c("euclidean","maximum","manhattan","canberra")
+titles <- c("Hierarchical","K-means","K-medoids","Clara","Fanny")
+subtitles <- c("Euclidean","Maximum","Manhattan","Canberra","Mahalanobis")
+ylabel <- c("Total Within Sum of Square","Average silhouette width", "Gap statistic (K)")
+methods <- c("wss","silhouette","gap_stat")
 
 window_width = 50                                        #Šírka okna
 step = 10                                                #Posun
@@ -68,10 +74,10 @@ for(i in 1:number_rows_after_vectoring){                                    #Pre
 
 heatmap_distance_matrix = dist(heatmap_vectors_matrix_base)                         #Vypočítanie vzdialeností matice
 heatmap_hclust_output <- hclust(heatmap_distance_matrix, method = "complete") #Funkcia hclust do ktorej ako parameter posielame vzdialenosť matice (už vektorová mapa) a metódu "complete"
-plot(heatmap_hclust_output)                                       #Dendrogram hclust
+#plot(heatmap_hclust_output)                                       #Dendrogram hclust
 heatmap_clusters_base <- cutree(heatmap_hclust_output, k=number_of_clusters) #Zvolenie počtu zhlukov a orezanie
-graph <- fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_clusters_base), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
-graph
+#graph <- fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_clusters_base), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
+#graph
 
 ### ODSTRANENIE ZHLUKOV VELKOSTI 1
 removed_columns_first_reduction = 0
@@ -105,17 +111,17 @@ for (i in 1:number_of_clusters) {
 }
 
 ## DRUHE ZHLUKOVANIE
-table(heatmap_clusters_base)
-table(heatmap_clusters_after_first_reduction)
-dim(heatmap_vectors_matrix_base)
-dim(heatmap_vectors_matrix_after_first_reduction)
+#table(heatmap_clusters_base)
+#table(heatmap_clusters_after_first_reduction)
+#dim(heatmap_vectors_matrix_base)
+#dim(heatmap_vectors_matrix_after_first_reduction)
 heatmap_distance_matrix_after_first_reduction = dist(heatmap_vectors_matrix_after_first_reduction)
 heatmap_hclust_output_after_first_reduction <- hclust(heatmap_distance_matrix_after_first_reduction, method = "complete")
 heatmap_clusters_after_first_reduction <- cutree(heatmap_hclust_output_after_first_reduction, k=number_of_clusters)
-table(heatmap_clusters_after_first_reduction)
-dim(heatmap_vectors_matrix_after_first_reduction)
-graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE, labelsize = 0)
-graph
+#table(heatmap_clusters_after_first_reduction)
+#dim(heatmap_vectors_matrix_after_first_reduction)
+#graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE, labelsize = 0)
+#graph
 
 
 ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
@@ -205,10 +211,10 @@ for (j in 1:number_of_clusters) {
   }
 }
 
-table(heatmap_clusters_after_first_reduction)
-table(heatmap_clusters_after_second_reduction)
-dim(heatmap_vectors_matrix_after_first_reduction)
-dim(heatmap_vectors_matrix_after_second_reduction)
+#table(heatmap_clusters_after_first_reduction)
+#table(heatmap_clusters_after_second_reduction)
+#dim(heatmap_vectors_matrix_after_first_reduction)
+#dim(heatmap_vectors_matrix_after_second_reduction)
 
 graph_first_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE)
 graph_second_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE)
@@ -279,49 +285,160 @@ nblucst_hclust_data <- nblucst_hclust$data
 #max_cluster_hclust <- as.numeric(nblucst_hclust_data$clusters[which.max(nblucst_hclust_data$y)])
 #plot(max_cluster_hclust)
 plot(nblucst_hclust)
-delta_result = data.frame(col1 = numeric())
-for (i in 1:length(nblucst_hclust_data$clusters)) {
-  if (i > length(nblucst_hclust_data$clusters) - 2) {
-    break
+
+
+# nbclust_calculation=function(data,kmax,funct,method,distance)  
+# {
+#   dist = dist(data,distance)
+#   nbclust <- fviz_nbclust(data,k.max = kmax, FUN = funct, method = method, print.summary = TRUE, diss = dist)
+# }
+# 
+# best_number_of_clusters=function(data,ylab,title,subtitle)  
+# {
+#   delta_result = data.frame(col1 = numeric())
+#   for (i in 1:length(data$clusters)) {
+#     if (i > length(data$clusters) - 2) {
+#       break
+#     }
+#     delta_i_1 = data$y[i] - data$y[i+1]
+#     delta_i_2 = data$y[i] - data$y[i+2]
+#     new_row <- c(delta_i_1/delta_i_2)
+#     delta_result[nrow(delta_result) + 1, ] <- new_row
+#   }
+#   best_cluster = which(delta_result == min(delta_result, na.rm = TRUE))
+#   yvalue = data$y[best_cluster]
+#   plot(data$y, type = "b",  xlab = "Number of clusters k", ylab = ylab)
+#   title(main = title,cex.main = 1.5)
+#   mysubtitle = subtitle
+#   mtext(side = 3, line = 0.25, at = 9.8, adj = 0, mysubtitle)
+#   abline(v = best_cluster,h = yvalue, col = "blue", lwd = 1,lty = "1342")
+# }
+dev.off()
+
+d_tsne_matrix = as.matrix(d_tsne_1_original)
+attach(mtcars)
+par(mfrow=c(2,3))
+nbclust_calculation_test=function(data,kmax,funct,method,distance)  
+{
+  if (distance == 1) {
+    d_tsne_matrix = as.matrix(d_tsne_1_original)
+    d_tsne_1_original_center = colMeans(d_tsne_matrix)
+    d_tsne_1_original_covariance = cov(d_tsne_matrix)
+    mahalanobis_dist <- mahalanobis(x = d_tsne_matrix,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance)
+    fviz_nbclust(d_tsne_1,k.max = kmax, FUN = funct, method = method, print.summary = TRUE, diss = mahalanobis_dist)
+  }else{
+  dist = dist(data,distance)
+  fviz_nbclust(data,k.max = kmax, FUN = funct, method = method, print.summary = TRUE, diss = dist)
   }
-  delta_i_1 = nblucst_hclust_data$y[i] - nblucst_hclust_data$y[i+1]
-  delta_i_2 = nblucst_hclust_data$y[i] - nblucst_hclust_data$y[i+2]
-  new_row <- c(delta_i_1/delta_i_2)
-  delta_result[nrow(delta_result) + 1, ] <- new_row
 }
-##https://stackoverflow.com/questions/43662977/how-to-find-the-indexes-of-the-minimum-value-in-whole-dataframe
-best_cluster = which(delta_result == min(delta_result, na.rm = TRUE))
-plot(nblucst_hclust_data$y, type = "b")
-abline(v = best_cluster, col = "blue", lwd = 2)
 
-#ggplot(nblucst_hclust_data, aes(clusters, y, group = 1)) +  geom_line()
+best_number_of_clusters_test=function(data,ylab,title,subtitle)  
+{
+  delta_result = data.frame(col1 = numeric())
+  for (i in 1:length(data$clusters)) {
+    data_i_0 = data$y[i]
+    data_i_1 = data$y[i+1]
+    data_i_2 = data$y[i+2]
+    delta_i_1 = data_i_0 - data_i_1
+    delta_i_2 = data_i_0 - data_i_2
+    new_row <- c(delta_i_1/delta_i_2)
+    delta_result[nrow(delta_result) + 1, ] <- new_row
+  }
+  ##https://stackoverflow.com/questions/28560188/find-the-index-of-minimum-non-negative-value-in-r
+  best_cluster = which(delta_result==min(delta_result[delta_result>0], na.rm = TRUE))
+  yvalue = data$y[best_cluster]
+  plot(data$y, type = "b",  xlab = "Number of clusters k", ylab = ylab)
+  title(main = title,cex.main = 1.5)
+  mysubtitle = subtitle
+  mtext(side = 3, line = 0.25, at = 9.5, adj = 0, mysubtitle)
+  abline(v = best_cluster,h = yvalue, col = "blue", lwd = 1,lty = "1342")
+}
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","maximum")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Maximum")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","manhattan")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Manhattan")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","canberra")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Canberra")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","minkowski")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Minkowski")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss", 1)
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Mahalanobis")
+
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Euclidean")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","maximum")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Maximum")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","manhattan")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Manhattan")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","canberra")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Canberra")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","minkowski")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Minkowski")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss", 1)
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Mahalanobis")
+
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Euclidean")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","maximum")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Maximum")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","manhattan")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Manhattan")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","canberra")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Canberra")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","minkowski")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Minkowski")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss", 1)
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Mahalanobis")
+
+#https://en.wikibooks.org/wiki/Data_Mining_Algorithms_In_R/Clustering/CLARA
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Euclidean")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","maximum")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Maximum")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","manhattan")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Manhattan")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","canberra")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Canberra")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","minkowski")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Minkowski")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss", 1)
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Mahalanobis")
+
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Euclidean")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","maximum")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Maximum")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","manhattan")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Manhattan")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","canberra")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Canberra")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","minkowski")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Minkowski")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss", 1)
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Mahalanobis")
+
+dev.off()
+
+attach(mtcars)
+par(mfrow=c(3,2))
+
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette","maximum")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Maximum")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette","manhattan")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Manhattan")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette","canberra")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Canberra")
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette","minkowski")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Minkowski")
+#nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette", 1)
+#nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Mahalanobis")
 
 
-nbclust_kmeans <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE)
-nbclust_kmeans_data <- nbclust_kmeans$data
-max_cluster_kmeans <- as.numeric(nbclust_kmeans_data$clusters[which.max(nbclust_kmeans_data$y)])
-#plot(max_cluster_kmeans)
-plot(nbclust_kmeans_data$y, type = "b")
 
-
-
-nbclust_pam <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss")
-nbclust_pam_data <- nbclust_pam$data
-#max_cluster_pam <- as.numeric(nbclust_pam_data$clusters[which.max(nbclust_pam_data$y)])
-#plot(max_cluster_pam)
-plot(nbclust_pam_data$y, type = "b")
-
-nbclust_clara <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss")
-nbclust_clara_data <- nbclust_clara$data
-max_cluster_clara <- as.numeric(nbclust_clara_data$clusters[which.max(nbclust_clara_data$y)])
-plot(max_cluster_clara)
-plot(nbclust_clara)
-
-nbclust_fanny <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::fanny, method = "wss")
-nbclust_fanny_data <- nbclust_fanny$data
-max_cluster_fanny <- as.numeric(nbclust_fanny_data$clusters[which.max(nbclust_fanny_data$y)])
-plot(max_cluster_fanny)
-plot(nbclust_fanny)
 
 ## SILHOUTTE
 nblucst_hclust_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "silhouette", print.summary = TRUE)
