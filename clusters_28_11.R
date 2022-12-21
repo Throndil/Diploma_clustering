@@ -210,11 +210,12 @@ table(heatmap_clusters_after_second_reduction)
 dim(heatmap_vectors_matrix_after_first_reduction)
 dim(heatmap_vectors_matrix_after_second_reduction)
 
-graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE)
-graph
-
-graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE)
-graph
+graph_first_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE)
+graph_second_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE)
+attach(mtcars)
+par(mfrow=c(3,1))
+plot(graph_first_reduction)
+plot(graph_second_reduction)
 
 heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_second_reduction)
 names(heatmap_clusters_dataframe) <- NULL
@@ -275,21 +276,40 @@ table(heatmap_clusters_after_second_reduction)
 ## http://www.sthda.com/english/articles/29-cluster-validation-essentials/96-determiningthe-optimal-number-of-clusters-3-must-know-methods/
 nblucst_hclust <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss", print.summary = TRUE)
 nblucst_hclust_data <- nblucst_hclust$data
-max_cluster_hclust <- as.numeric(nblucst_hclust_data$clusters[which.max(nblucst_hclust_data$y)])
-plot(max_cluster_hclust)
+#max_cluster_hclust <- as.numeric(nblucst_hclust_data$clusters[which.max(nblucst_hclust_data$y)])
+#plot(max_cluster_hclust)
 plot(nblucst_hclust)
+delta_result = data.frame(col1 = numeric())
+for (i in 1:length(nblucst_hclust_data$clusters)) {
+  if (i > length(nblucst_hclust_data$clusters) - 2) {
+    break
+  }
+  delta_i_1 = nblucst_hclust_data$y[i] - nblucst_hclust_data$y[i+1]
+  delta_i_2 = nblucst_hclust_data$y[i] - nblucst_hclust_data$y[i+2]
+  new_row <- c(delta_i_1/delta_i_2)
+  delta_result[nrow(delta_result) + 1, ] <- new_row
+}
+##https://stackoverflow.com/questions/43662977/how-to-find-the-indexes-of-the-minimum-value-in-whole-dataframe
+best_cluster = which(delta_result == min(delta_result, na.rm = TRUE))
+plot(nblucst_hclust_data$y, type = "b")
+abline(v = best_cluster, col = "blue", lwd = 2)
+
+#ggplot(nblucst_hclust_data, aes(clusters, y, group = 1)) +  geom_line()
+
 
 nbclust_kmeans <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE)
 nbclust_kmeans_data <- nbclust_kmeans$data
 max_cluster_kmeans <- as.numeric(nbclust_kmeans_data$clusters[which.max(nbclust_kmeans_data$y)])
-plot(max_cluster_kmeans)
-plot(nbclust_kmeans)
+#plot(max_cluster_kmeans)
+plot(nbclust_kmeans_data$y, type = "b")
+
+
 
 nbclust_pam <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::pam, method = "wss")
 nbclust_pam_data <- nbclust_pam$data
-max_cluster_pam <- as.numeric(nbclust_pam_data$clusters[which.max(nbclust_pam_data$y)])
-plot(max_cluster_pam)
-plot(nbclust_pam)
+#max_cluster_pam <- as.numeric(nbclust_pam_data$clusters[which.max(nbclust_pam_data$y)])
+#plot(max_cluster_pam)
+plot(nbclust_pam_data$y, type = "b")
 
 nbclust_clara <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = cluster::clara, method = "wss")
 nbclust_clara_data <- nbclust_clara$data
@@ -308,7 +328,7 @@ nblucst_hclust_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method
 nblucst_hclust_data_silhoutte <- nblucst_hclust_silhoutte$data
 max_cluster_hclust_silhoutte <- as.numeric(nblucst_hclust_data_silhoutte$clusters[which.max(nblucst_hclust_data_silhoutte$y)])
 plot(max_cluster_hclust_silhoutte)
-plot(nblucst_hclust_silhoutte)
+plot(nblucst_hclust_data_silhoutte$y,type = "b")
 
 nbclust_kmeans_silhoutte <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "silhouette", print.summary = TRUE)
 nbclust_kmeans_data_silhoutte <- nbclust_kmeans_silhoutte$data
@@ -339,9 +359,9 @@ plot(nbclust_fanny_silhoutte)
 ## GAP_STAT
 nblucst_hclust_gap_stat <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "gap_stat", print.summary = TRUE)
 nblucst_hclust_data_gap_stat <- nblucst_hclust_gap_stat$data
-max_cluster_hclust_gap_stat <- as.numeric(nblucst_hclust_data_gap_stat$clusters[which.max(nblucst_hclust_data_gap_stat$y)])
-plot(max_cluster_hclust_gap_stat)
+#max_cluster_hclust_gap_stat <- as.numeric(nblucst_hclust_data_gap_stat$clusters[which.max(nblucst_hclust_data_gap_stat$y)])
 plot(nblucst_hclust_gap_stat)
+plot(nblucst_hclust_data_gap_stat$y,type = "b")
 
 ## https://www.biostars.org/p/320710/
 MyKmeansFUN <- function(x,k) list(cluster=kmeans(x, k, iter.max=50))
@@ -375,7 +395,22 @@ nblucst_hclust_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, me
 nblucst_hclust_data_wss_manhattan <- nblucst_hclust_wss_manhattan$data
 max_cluster_hclust_wss_manhattan <- as.numeric(nblucst_hclust_data_wss_manhattan$clusters[which.max(nblucst_hclust_data_wss_manhattan$y)])
 plot(max_cluster_hclust_wss_manhattan)
-plot(nblucst_hclust_wss_manhattan)
+plot(nblucst_hclust_data_wss_manhattan$y, type= "b")
+
+delta_result = data.frame(col1 = numeric())
+for (i in 1:length(nblucst_hclust_data_wss_manhattan$clusters)) {
+  if (i > length(nblucst_hclust_data_wss_manhattan$clusters) - 2) {
+    break
+  }
+  delta_i_1 = nblucst_hclust_data_wss_manhattan$y[i] - nblucst_hclust_data_wss_manhattan$y[i+1]
+  delta_i_2 = nblucst_hclust_data_wss_manhattan$y[i] - nblucst_hclust_data_wss_manhattan$y[i+2]
+  new_row <- c(delta_i_1/delta_i_2)
+  delta_result[nrow(delta_result) + 1, ] <- new_row
+}
+##https://stackoverflow.com/questions/43662977/how-to-find-the-indexes-of-the-minimum-value-in-whole-dataframe
+best_cluster = which(delta_result == min(delta_result, na.rm = TRUE))
+plot(nblucst_hclust_data_wss_manhattan$y, type = "b")
+abline(v = best_cluster, col = "blue", lwd = 2)
 
 nbclust_kmeans_wss_manhattan <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE, diss = manhattan_dist)
 nbclust_kmeans_data_wss_manhattan <- nbclust_kmeans_wss_manhattan$data
@@ -443,7 +478,22 @@ nblucst_hclust_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method
 nblucst_hclust_data_wss_mahal <- nblucst_hclust_wss_mahal$data
 max_cluster_hclust_wss_mahal <- as.numeric(nblucst_hclust_data_wss_mahal$clusters[which.max(nblucst_hclust_data_wss_mahal$y)])
 plot(max_cluster_hclust_wss_mahal)
-plot(nblucst_hclust_wss_mahal)
+plot(nblucst_hclust_data_wss_mahal$y, type = "b")
+
+delta_result = data.frame(col1 = numeric())
+for (i in 1:length(nblucst_hclust_data_wss_mahal$clusters)) {
+  if (i > length(nblucst_hclust_data_wss_mahal$clusters) - 2) {
+    break
+  }
+  delta_i_1 = nblucst_hclust_data_wss_mahal$y[i] - nblucst_hclust_data_wss_mahal$y[i+1]
+  delta_i_2 = nblucst_hclust_data_wss_mahal$y[i] - nblucst_hclust_data_wss_mahal$y[i+2]
+  new_row <- c(delta_i_1/delta_i_2)
+  delta_result[nrow(delta_result) + 1, ] <- new_row
+}
+##https://stackoverflow.com/questions/43662977/how-to-find-the-indexes-of-the-minimum-value-in-whole-dataframe
+best_cluster = which(delta_result == min(delta_result, na.rm = TRUE))
+plot(nblucst_hclust_data_wss_mahal$y, type = "b")
+abline(v = best_cluster, col = "blue", lwd = 2)
 
 nbclust_kmeans_wss_mahal <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = kmeans, method = "wss", print.summary = TRUE, diss = mahalanobis(x = d_tsne_1_original,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance))
 nbclust_kmeans_data_wss_mahal <- nbclust_kmeans_wss_mahal$data
@@ -599,7 +649,6 @@ plot_cluster=function(data, var_cluster,palette)
     #                   expand = unit(0.5, "mm")) +
     geom_mark_ellipse(data = d_tsne_1_original %>% 
                         filter(d_tsne_1_original$cl_hierarchical == 1),
-                        filter(d_tsne_1_original$cl_hierarchical == 4),
                       #fill = "red",
                       expand = unit(1, "mm")) +
     guides(colour=guide_legend(override.aes=list(size=10))) +
