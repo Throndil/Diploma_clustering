@@ -34,7 +34,6 @@ step = 10                                                #Posun
 number_of_clusters = 10                                  #Počet zhlukov
 
 original_heatmap <- read.csv(file.choose(), header=T)              #Načítanie teplotnej mapy z CSV súboru z programu p. Krnáča, mydata = teplotna_mapa
-
 column_names <- head(original_heatmap,0)                           #Vlož názvy V1 až V50 ako názvy stĺpcov
 
 counter = 1                                              #Celkové počítadlo
@@ -127,11 +126,11 @@ heatmap_clusters_after_first_reduction <- cutree(heatmap_hclust_output_after_fir
 ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
 heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_first_reduction)
 names(heatmap_clusters_dataframe) <- NULL
-write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_clustersv2.csv", row.names = FALSE, col.names = FALSE)
+write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_cluster_first_reduction.csv", row.names = FALSE, col.names = FALSE)
 
 heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
 names(heatmap_vectors_dataframe) <- NULL
-write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vectorsv2.csv", row.names = FALSE,  col.names = FALSE)
+write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vectors_first_reduction.csv", row.names = FALSE,  col.names = FALSE)
 
 
 m = nrow(heatmap_vectors_matrix_after_first_reduction)  
