@@ -16,7 +16,11 @@ library(ggpubr)
 library(ape)
 library(RColorBrewer)
 library(functional)
-
+library(gsubfn)
+library(readxl)
+#library(tidyverse)
+working_directory <- getwd()
+setwd(getwd())
 names <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10",
            "V11","V12","V13","V14","V15","V16","V17","V18","V19","V20","V21","V22","V23","V24","V25",
            "V26","V27","V28","V29","V30","V31","V32","V33","V34","V35","V36","V37","V38","V39","V40",
@@ -29,226 +33,324 @@ subtitles <- c("Euclidean","Maximum","Manhattan","Canberra","Mahalanobis")
 ylabel <- c("Total Within Sum of Square","Average silhouette width", "Gap statistic (K)")
 methods <- c("wss","silhouette","gap_stat")
 
-window_width = 50                                        #Šírka okna
-step = 10                                                #Posun
-number_of_clusters = 10                                  #Počet zhlukov
+set_window_width = 50                                        #Šírka okna
+set_step = 10                                                #Posun
+set_number_of_clusters = 10                                  #Počet zhlukov
+set_original_heatmap <- read.csv(file.choose(), header=T)              #Načítanie teplotnej mapy z CSV súboru z programu p. Krnáča, mydata = teplotna_mapa
+column_names <- head(set_original_heatmap,0)                           #Vlož názvy V1 až V50 ako názvy stĺpcov
 
-original_heatmap <- read.csv(file.choose(), header=T)              #Načítanie teplotnej mapy z CSV súboru z programu p. Krnáča, mydata = teplotna_mapa
-column_names <- head(original_heatmap,0)                           #Vlož názvy V1 až V50 ako názvy stĺpcov
 
-counter = 1                                              #Celkové počítadlo
-current_row_heatmap = 1                                          #Počítadlo riadkov
-number_rows_after_vectoring = (nrow(original_heatmap) - window_width) / step + 1      #Celkový počet riadkov, výpočet je: (počet riadkov teplotnej mapy - zvolená šírka vektora) / posun
-heatmap_vectors_list_base <- list()                                   #Vytvorenie listu do ktorého uložím vektory
-for(i in 1:number_rows_after_vectoring){                                    #Prechádzam počtom riadkov
-  if (window_width == 1) {                               #Ak používateľ zvolil šírku okna 1, znamená to že vektorová mapa bude rovnaká ako teplotná mapa
-    heatmap_vectors_matrix_base <- original_heatmap
-    break
-  }
-  if (window_width != 1) {
-    heatmap_column = original_heatmap[current_row_heatmap,]                   #Pomocný vector do ktorého si vložím prvotný riadok a na neho nabaľujem ostatné
-    counter <- current_row_heatmap + 1                           #Zvýšim počítadlo
-    for (j in 1:window_width) {                          #Cyklus sa toľkokrát ako bola zadaná šírka okna
-      if (j != window_width) {                           #Telo cyklu, pokým sa cyklus nerovná šírke okna tak nabaľujem riadky na pomocný vektor
-        heatmap_column = append(heatmap_column, original_heatmap[counter,])
-        counter <- counter + 1
-      }
-      if (j == window_width) {                           #Ak sme na poslednom kroku cyklu, už nepribaľujeme a pribalíme vektor do listu na pozíciu i
-        heatmap_vectors_list_base[[i]] <- heatmap_column 
-        current_row_heatmap <- current_row_heatmap + step                #Aktualizujem počítadlo riadkov
+create_heatmap_vectors <- function(data,clusters,step,window){
+  counter = 1                                              #Celkové počítadlo
+  current_row_heatmap = 1                                          #Počítadlo riadkov
+  number_rows_after_vectoring = (nrow(data) - window) / step + 1      #Celkový počet riadkov, výpočet je: (počet riadkov teplotnej mapy - zvolená šírka vektora) / posun
+  heatmap_vectors_list_base <- list()                                   #Vytvorenie listu do ktorého uložím vektory
+  for(i in 1:number_rows_after_vectoring){                                    #Prechádzam počtom riadkov
+    if (window == 1) {                               #Ak používateľ zvolil šírku okna 1, znamená to že vektorová mapa bude rovnaká ako teplotná mapa
+      heatmap_vectors_matrix_base <- data.class()
+      break
+    }
+    if (window != 1) {
+      heatmap_column = data[current_row_heatmap,]                   #Pomocný vector do ktorého si vložím prvotný riadok a na neho nabaľujem ostatné
+      counter <- current_row_heatmap + 1                           #Zvýšim počítadlo
+      for (j in 1:window) {                          #Cyklus sa toľkokrát ako bola zadaná šírka okna
+        if (j != window) {                           #Telo cyklu, pokým sa cyklus nerovná šírke okna tak nabaľujem riadky na pomocný vektor
+          heatmap_column = append(heatmap_column, data[counter,])
+          counter <- counter + 1
+        }
+        if (j == window) {                           #Ak sme na poslednom kroku cyklu, už nepribaľujeme a pribalíme vektor do listu na pozíciu i
+          heatmap_vectors_list_base[[i]] <- heatmap_column 
+          current_row_heatmap <- current_row_heatmap + step                #Aktualizujem počítadlo riadkov
+        }
       }
     }
-  }
-  message("Processing image ", i, " of ", number_rows_after_vectoring)      #Pomocný výpis
-  if (i == number_rows_after_vectoring) {
-    if (window_width == 1) {                             #Ak je šírka okna 1, matica je vlastne samotné dáta
-      heatmap_vectors_matrix_base <- original_heatmap
-      colnames(heatmap_vectors_matrix_base) <- rep(names, times = ncol(original_heatmap))    #Nastavenie názvu stĺpcov pre vektorovú mapu
-    }else{
-      heatmap_vectors_matrix_base <- matrix(unlist(heatmap_vectors_list_base), ncol=window_width*ncol(original_heatmap), nrow=number_rows_after_vectoring, byrow=TRUE)
-      colnames(heatmap_vectors_matrix_base) <- rep(names, times = ncol(original_heatmap))
+    message("Processing image ", i, " of ", number_rows_after_vectoring)      #Pomocný výpis
+    if (i == number_rows_after_vectoring) {
+      if (window == 1) {                             #Ak je šírka okna 1, matica je vlastne samotné dáta
+        heatmap_vectors_matrix_base <- data
+        colnames(heatmap_vectors_matrix_base) <- rep(names, times = ncol(data))    #Nastavenie názvu stĺpcov pre vektorovú mapu 
+        heatmap_vectors_matrix_base <<- heatmap_vectors_matrix_base                #Assign ako globalnu premennu
+        heatmap_vectors_list_base <<- heatmap_vectors_list_base
+        number_rows_after_vectoring <<- number_rows_after_vectoring
+      }else{
+        heatmap_vectors_matrix_base <- matrix(unlist(heatmap_vectors_list_base), ncol=window*ncol(data), nrow=number_rows_after_vectoring, byrow=TRUE)
+        colnames(heatmap_vectors_matrix_base) <- rep(names, times = ncol(data))
+        heatmap_vectors_matrix_base <<- heatmap_vectors_matrix_base
+        heatmap_vectors_list_base <<- heatmap_vectors_list_base
+        number_rows_after_vectoring <<- number_rows_after_vectoring
+      }
     }
   }
 }
 
-heatmap_distance_matrix = dist(heatmap_vectors_matrix_base)                         #Vypočítanie vzdialeností matice
-heatmap_hclust_output <- hclust(heatmap_distance_matrix, method = "complete") #Funkcia hclust do ktorej ako parameter posielame vzdialenosť matice (už vektorová mapa) a metódu "complete"
-#plot(heatmap_hclust_output)                                       #Dendrogram hclust
-heatmap_clusters_base <- cutree(heatmap_hclust_output, k=number_of_clusters) #Zvolenie počtu zhlukov a orezanie
-#graph <- fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_clusters_base), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
-#graph
+create_heatmap_vectors(set_original_heatmap,set_number_of_clusters,set_step,set_window_width)
 
-### ODSTRANENIE ZHLUKOV VELKOSTI 1
-removed_columns_first_reduction = 0
-rows_in_cluster = 0
-current_cluster = 1
-row_index = 0
-heatmap_vectors_list_after_first_reduction = heatmap_vectors_list_base
-heatmap_clusters_after_first_reduction = heatmap_clusters_base
-heatmap_vectors_matrix_after_first_reduction = heatmap_vectors_matrix_base
-for (i in 1:number_of_clusters) {
-  for (j in 1:length(heatmap_clusters_after_first_reduction)) {
-    if (heatmap_clusters_after_first_reduction[j] == current_cluster) {          #Musi byt taketo pocitadlo zhluku inac by vratil anomali na indexe 1 pre kazdy zhluk
-      rows_in_cluster <- rows_in_cluster + 1
-      row_index = j
-    }
-    if (j == length(heatmap_clusters_after_first_reduction) && rows_in_cluster == 1) {
-      message("Anomalia v zhluku: ", i, ", na indexe: ", row_index)
-      heatmap_vectors_list_after_first_reduction[[row_index]] <- NULL
-      heatmap_clusters_after_first_reduction <- heatmap_clusters_after_first_reduction[-c(row_index)]
-      if (removed_columns_first_reduction == 0 || removed_columns_first_reduction < 0) {
-        removed_columns_first_reduction <- heatmap_vectors_matrix_after_first_reduction[row_index,]
-      }else{
-        removed_columns_first_reduction <- rbind(removed_columns_first_reduction,heatmap_vectors_matrix_after_first_reduction[row_index,])
-      }
-      heatmap_vectors_matrix_after_first_reduction <- heatmap_vectors_matrix_after_first_reduction[-row_index,]
-    }
-  }
+create_first_clustering <- function(data,method,clusters){
+  message("Calculating distance matrix.")
+  heatmap_distance_matrix = dist(data)                         #Vypočítanie vzdialeností matice
+  message("Finished distance matrix, calculating hclust.")
+  heatmap_hclust_output <- hclust(heatmap_distance_matrix, method = method) #Funkcia hclust do ktorej ako parameter posielame vzdialenosť matice (už vektorová mapa) a metódu "complete"
+  message("Finished hclust, calculating cutree.")
+  #plot(heatmap_hclust_output)                                       #Dendrogram hclust
+  heatmap_clusters_base <- cutree(heatmap_hclust_output, k=clusters) #Zvolenie počtu zhlukov a orezanie
+  message("Finished cutree.")
+  #graph <- fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_clusters_base), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
+  #graph 
+  heatmap_distance_matrix <<- heatmap_distance_matrix
+  heatmap_hclust_output <<- heatmap_hclust_output
+  heatmap_clusters_base <<- heatmap_clusters_base
+}
+
+create_first_clustering(heatmap_vectors_matrix_base,"complete",set_number_of_clusters)
+
+first_reduction <- function(heatmap_list,heatmap_clusters,heatmap_vectors,clusters){
+  ### ODSTRANENIE ZHLUKOV VELKOSTI 1
+  removed_columns_first_reduction = 0
   rows_in_cluster = 0
+  current_cluster = 1
   row_index = 0
-  current_cluster <- current_cluster + 1
-}
-
-## DRUHE ZHLUKOVANIE
-#table(heatmap_clusters_base)
-#table(heatmap_clusters_after_first_reduction)
-#dim(heatmap_vectors_matrix_base)
-#dim(heatmap_vectors_matrix_after_first_reduction)
-heatmap_distance_matrix_after_first_reduction = dist(heatmap_vectors_matrix_after_first_reduction)
-heatmap_hclust_output_after_first_reduction <- hclust(heatmap_distance_matrix_after_first_reduction, method = "complete")
-heatmap_clusters_after_first_reduction <- cutree(heatmap_hclust_output_after_first_reduction, k=number_of_clusters)
-#table(heatmap_clusters_after_first_reduction)
-#dim(heatmap_vectors_matrix_after_first_reduction)
-#graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE, labelsize = 0)
-#graph
-
-
-###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
-heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_first_reduction)
-names(heatmap_clusters_dataframe) <- NULL
-write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_cluster_first_reduction.csv", row.names = FALSE, col.names = FALSE)
-
-heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
-names(heatmap_vectors_dataframe) <- NULL
-write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vectors_first_reduction.csv", row.names = FALSE,  col.names = FALSE)
-
-
-m = nrow(heatmap_vectors_matrix_after_first_reduction)  
-n = ncol(heatmap_vectors_matrix_after_first_reduction)
-y = heatmap_vectors_matrix_after_first_reduction[1:m,1:n] #y obsahuje maticu dat
-z <- heatmap_clusters_after_first_reduction[1:m]   #z obsahuje vektor zhlukov
-clusters_length = length(heatmap_clusters_after_first_reduction)
-clusters_list <- list()
-radius_list <- list()
-list_counter = 1
-cdf_counter = 1
-percent = .99
-length_d = 0
-radius_dataframe = data.frame()
-clusters_dataframe = data.frame()
-
-for (i in 1:number_of_clusters) {
-  message("Processing image ", i, " of ", number_of_clusters)
-  v = y[z == i,]
-  if (is.null(nrow(v))) {
-    d = sqrt(v^2)
-    clusters_list[[i]] = d
-    length_d = length(d)
-    clusters_matrix = matrix(unlist(clusters_list[[i]]), ncol=length_d, nrow=1, byrow=TRUE)
-    d_dataframe = as.data.frame(clusters_matrix)
-    write.xlsx2(d_dataframe, file="pilot_project_distance_matrix.xlsx", sheetName=sheet_names[i], append=TRUE, row.names=FALSE,col.names = FALSE)
-    CDF = ecdf(d)
-    q = quantile(CDF,c(percent))
-    radius_dataframe = rbind(radius_dataframe,q)
-  }else{
-    c = colMeans(v)
-    u = t(v) - c
-    d = sqrt(colSums(u^2))
-    clusters_list[[i]] = d
-    length_d = length(d)
-    clusters_matrix = matrix(unlist(clusters_list[[i]]), ncol=length_d, nrow=1, byrow=TRUE)
-    d_dataframe = as.data.frame(clusters_matrix)
-    write.xlsx2(d_dataframe, file="pilot_project_distance_matrix.xlsx", sheetName=sheet_names[i], append=TRUE, row.names=FALSE,col.names = FALSE)
-    CDF = ecdf(d)
-    q = quantile(CDF,c(percent))
-    radius_dataframe = rbind(radius_dataframe,q)
-  }
-  if (i == number_of_clusters) {
-    write.xlsx(radius_dataframe,file = "pilot_project_radius.xlsx", sheetName = "Clusters_radius",row.names = FALSE,col.names = FALSE,append = TRUE)
-  }
-}
-
-
-## POZERANIE PRE BODY MIMO POLOMERU ###### AUTOMATICKY POSUN INDEXOV ########
-index_to_remove = 0
-index_to_to_remove = 0
-how_many_removed = 0
-heatmap_clusters_after_second_reduction = heatmap_clusters_after_first_reduction
-heatmap_vectors_matrix_after_second_reduction = heatmap_vectors_matrix_after_first_reduction
-removed_columns_second_reduction = 0
-for (j in 1:number_of_clusters) {
-  message("Novy zhluk: ", j)
-  for (i in 1:length(clusters_list[[j]])) {
-    index_to_remove = which(heatmap_clusters_after_second_reduction %in% c(j))
-    if (clusters_list[[j]][i] > radius_dataframe[j,]) {
-      message("Zhluk: ", j, " ,bod: ",clusters_list[[j]][i], " ,je mimo polomeru zhluku: ", j, " ,ktori je: ", radius_dataframe[j,])
-      message("Index v zhluku: ", i)
-      index_to_to_remove = index_to_remove[i]
-      message("Index v datach: ", index_to_remove[i])
-      heatmap_clusters_after_second_reduction <- heatmap_clusters_after_second_reduction[-c(index_to_to_remove)]
-      if (removed_columns_second_reduction == 0 || removed_columns_second_reduction < 0) {
-        removed_columns_second_reduction <- heatmap_vectors_matrix_after_second_reduction[index_to_to_remove,]
-      }else{
-        removed_columns_second_reduction <- rbind(removed_columns_second_reduction,heatmap_vectors_matrix_after_second_reduction[index_to_to_remove,])
+  heatmap_vectors_list_after_first_reduction = heatmap_list
+  heatmap_clusters_after_first_reduction = heatmap_clusters
+  heatmap_vectors_matrix_after_first_reduction = heatmap_vectors
+  for (i in 1:clusters) {
+    for (j in 1:length(heatmap_clusters_after_first_reduction)) {
+      if (heatmap_clusters_after_first_reduction[j] == current_cluster) {          #Musi byt taketo pocitadlo zhluku inac by vratil anomali na indexe 1 pre kazdy zhluk
+        rows_in_cluster <- rows_in_cluster + 1
+        row_index = j
       }
-      heatmap_vectors_matrix_after_second_reduction <- heatmap_vectors_matrix_after_second_reduction[-index_to_to_remove,]
-      how_many_removed <- how_many_removed + 1
+      if (j == length(heatmap_clusters_after_first_reduction) && rows_in_cluster == 1) {
+        message("Anomaly in cluster: ", i, ", at index: ", row_index)
+        heatmap_vectors_list_after_first_reduction[[row_index]] <- NULL
+        heatmap_clusters_after_first_reduction <- heatmap_clusters_after_first_reduction[-c(row_index)]
+        if (removed_columns_first_reduction == 0 || removed_columns_first_reduction < 0) {
+          removed_columns_first_reduction <- heatmap_vectors_matrix_after_first_reduction[row_index,]
+        }else{
+          removed_columns_first_reduction <- rbind(removed_columns_first_reduction,heatmap_vectors_matrix_after_first_reduction[row_index,])
+        }
+        heatmap_vectors_matrix_after_first_reduction <- heatmap_vectors_matrix_after_first_reduction[-row_index,]
+      }
+    }
+    rows_in_cluster = 0
+    row_index = 0
+    current_cluster <- current_cluster + 1
+  }
+  heatmap_vectors_list_after_first_reduction <<- heatmap_vectors_list_after_first_reduction
+  heatmap_clusters_after_first_reduction <<- heatmap_clusters_after_first_reduction
+  heatmap_vectors_matrix_after_first_reduction <<- heatmap_vectors_matrix_after_first_reduction
+  removed_columns_first_reduction <<- removed_columns_first_reduction
+}
+
+first_reduction(heatmap_vectors_list_base,heatmap_clusters_base,heatmap_vectors_matrix_base,set_number_of_clusters)
+
+create_second_clustering <- function(data,method,clusters){
+  ## DRUHE ZHLUKOVANIE
+  message("Calculating distance matrix.")
+  heatmap_distance_matrix_after_first_reduction = dist(data)
+  message("Finished distance matrix, calculating hclust.")
+  heatmap_hclust_output_after_first_reduction <- hclust(heatmap_distance_matrix_after_first_reduction, method = method)
+  message("Finished hclust, calculating cutree.")
+  heatmap_clusters_after_first_reduction <- cutree(heatmap_hclust_output_after_first_reduction, k=clusters)
+  message("Finished cutree.")
+  #graph <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE, labelsize = 0)
+  #graph
+  heatmap_distance_matrix_after_first_reduction <<- heatmap_distance_matrix_after_first_reduction
+  heatmap_hclust_output_after_first_reduction <<- heatmap_hclust_output_after_first_reduction
+  heatmap_clusters_after_first_reduction <<- heatmap_clusters_after_first_reduction
+}
+
+create_second_clustering(heatmap_vectors_matrix_after_first_reduction,"complete",set_number_of_clusters)
+
+first_reduction_save_file <- function(clusters_filename,vectors_filename){
+  ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
+  heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_first_reduction)
+  names(heatmap_clusters_dataframe) <- NULL
+  if (file.exists(clusters_filename)) {
+    file.remove(clusters_filename)
+    write.csv(heatmap_clusters_dataframe, clusters_filename, row.names = FALSE, col.names = FALSE)
+  }else{
+    write.csv(heatmap_clusters_dataframe, clusters_filename, row.names = FALSE, col.names = FALSE)
+  }
+  
+  heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
+  names(heatmap_vectors_dataframe) <- NULL
+  if (file.exists(vectors_filename)) {
+    file.remove(vectors_filename)
+    write.csv(heatmap_vectors_dataframe,vectors_filename , row.names = FALSE,  col.names = FALSE)
+  }else{
+    write.csv(heatmap_vectors_dataframe,vectors_filename , row.names = FALSE,  col.names = FALSE)
+  }
+}
+
+first_reduction_save_file("pilot_project_10shift_50width_cluster_first_reduction.csv","pilot_project_10shift_50width_heatmap_vectors_first_reduction.csv")
+
+
+calculate_radius <- function(data,clusters_data,clusters,quantile_percentage,distance_filename,radius_filename){
+  m = nrow(data)  
+  n = ncol(data)
+  y = data[1:m,1:n] #y obsahuje maticu dat
+  z <- clusters_data[1:m]   #z obsahuje vektor zhlukov
+  clusters_length = length(clusters_data)
+  clusters_list <- list()
+  radius_list <- list()
+  list_counter = 1
+  cdf_counter = 1
+  length_d = 0
+  radius_dataframe = data.frame()
+  clusters_dataframe = data.frame()
+  
+  for (i in 1:clusters) {
+    message("Processing image ", i, " of ", clusters)
+    v = y[z == i,]
+    if (is.null(nrow(v))) {
+      d = sqrt(v^2)
+      clusters_list[[i]] = d
+      length_d = length(d)
+      clusters_matrix = matrix(unlist(clusters_list[[i]]), ncol=length_d, nrow=1, byrow=TRUE)
+      d_dataframe = as.data.frame(clusters_matrix)
+      write.xlsx2(d_dataframe, file=distance_filename, sheetName=sheet_names[i], append=TRUE, row.names=FALSE,col.names = FALSE)
+      CDF = ecdf(d)
+      q = quantile(CDF,c(percent))
+      radius_dataframe = rbind(radius_dataframe,q)
+    }else{
+      c = colMeans(v)
+      u = t(v) - c
+      d = sqrt(colSums(u^2))
+      clusters_list[[i]] = d
+      length_d = length(d)
+      clusters_matrix = matrix(unlist(clusters_list[[i]]), ncol=length_d, nrow=1, byrow=TRUE)
+      d_dataframe = as.data.frame(clusters_matrix)
+      write.xlsx2(d_dataframe, file=distance_filename, sheetName=sheet_names[i], append=TRUE, row.names=FALSE,col.names = FALSE)
+      CDF = ecdf(d)
+      q = quantile(CDF,c(quantile_percentage))
+      radius_dataframe = rbind(radius_dataframe,q)
+    }
+    if (i == clusters) {
+      if (file.exists(radius_filename)) {
+        file.remove(radius_filename)
+        write.xlsx(radius_dataframe,file = radius_filename, sheetName = "Clusters_radius",row.names = FALSE,col.names = FALSE,append = TRUE)
+        radius_dataframe <<- radius_dataframe
+      }else{
+        write.xlsx(radius_dataframe,file = radius_filename, sheetName = "Clusters_radius",row.names = FALSE,col.names = FALSE,append = TRUE)
+        radius_dataframe <<- radius_dataframe
+      }
     }
   }
-  if (j == number_of_clusters) {
-    message("Pocet odstranenych bodov: ", how_many_removed)
-  }
+  clusters_list <<- clusters_list
 }
 
-#table(heatmap_clusters_after_first_reduction)
-#table(heatmap_clusters_after_second_reduction)
-#dim(heatmap_vectors_matrix_after_first_reduction)
-#dim(heatmap_vectors_matrix_after_second_reduction)
+calculate_radius(heatmap_vectors_matrix_after_first_reduction,heatmap_clusters_after_first_reduction,set_number_of_clusters,.99,"pilot_project_distance_matrix.xlsx","pilot_project_radius.xlsx")
+
+
+find_points_outside <- function(data,clusters_data,clusters){
+  index_to_remove = 0
+  i = 1
+  index_to_to_remove = 0
+  how_many_removed = 0
+  heatmap_clusters_after_second_reduction = heatmap_clusters_after_first_reduction
+  heatmap_vectors_matrix_after_second_reduction = heatmap_vectors_matrix_after_first_reduction
+  removed_columns_second_reduction = data.frame()
+  for (j in 1:set_number_of_clusters) {
+    message("Novy zhluk: ", j)
+    outer_bound = length(clusters_list[[j]])
+    while (i <= outer_bound) 
+    {
+      index_to_remove = which(heatmap_clusters_after_second_reduction %in% c(j))
+      if (clusters_list[[j]][i] > radius_dataframe[j,]) {
+        message("Zhluk: ", j, " ,bod: ",clusters_list[[j]][i], " ,je mimo polomeru zhluku: ", j, " ,ktori je: ", radius_dataframe[j,])
+        message("Index v zhluku: ", i)
+        index_to_to_remove = index_to_remove[i]
+        message("Index v datach: ", index_to_remove[i])
+        heatmap_clusters_after_second_reduction <- heatmap_clusters_after_second_reduction[-c(index_to_to_remove)]
+        removed_columns_second_reduction <- rbind(removed_columns_second_reduction,heatmap_vectors_matrix_after_second_reduction[index_to_to_remove,])
+        heatmap_vectors_matrix_after_second_reduction <- heatmap_vectors_matrix_after_second_reduction[-index_to_to_remove,]
+        how_many_removed <- how_many_removed + 1
+        
+        temporary_vector = unlist(clusters_list[[j]])
+        temporary_vector = temporary_vector[-i]
+        clusters_list[[j]] <- temporary_vector 
+        outer_bound = outer_bound - 1
+      }
+      if (i == outer_bound) {
+        i = 1
+        break
+      }
+      i = i + 1
+    }
+  }
+    if (j == set_number_of_clusters) {
+      message("Pocet odstranenych bodov: ", how_many_removed)
+      heatmap_vectors_matrix_after_second_reduction <<- heatmap_vectors_matrix_after_second_reduction
+      heatmap_clusters_after_second_reduction <<- heatmap_clusters_after_second_reduction
+      removed_columns_second_reduction <<- removed_columns_second_reduction
+    }
+}
+
+
+find_points_outside(heatmap_vectors_matrix_after_first_reduction,heatmap_clusters_after_first_reduction,set_number_of_clusters)
+
 
 graph_first_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE)
 graph_second_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE)
+dev.off()
 attach(mtcars)
-par(mfrow=c(3,1))
+par(mfrow=c(2,1))
 plot(graph_first_reduction)
 plot(graph_second_reduction)
 
-heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_second_reduction)
-names(heatmap_clusters_dataframe) <- NULL
-write.csv(heatmap_clusters_dataframe, "pilot_project_10shift_50width_cluster_second_reduction.csv", row.names = FALSE, col.names = FALSE)
 
-heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_second_reduction)
-names(heatmap_vectors_dataframe) <- NULL
-write.csv(heatmap_vectors_dataframe, "pilot_project_10shift_50width_heatmap_vectors_second_reduction.csv", row.names = FALSE,  col.names = FALSE)
+second_reduction_save_file <- function(clusters_filename,vectors_filename){
+  ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
+  heatmap_clusters_dataframe = as.data.frame(heatmap_clusters_after_second_reduction)
+  names(heatmap_clusters_dataframe) <- NULL
+  if (file.exists(clusters_filename)) {
+    file.remove(clusters_filename)
+    write.csv(heatmap_clusters_dataframe, clusters_filename, row.names = FALSE, col.names = FALSE)
+  }else{
+    write.csv(heatmap_clusters_dataframe, clusters_filename, row.names = FALSE, col.names = FALSE)
+  }
+  
+  heatmap_vectors_dataframe = as.data.frame(heatmap_vectors_matrix_after_second_reduction)
+  names(heatmap_vectors_dataframe) <- NULL
+  if (file.exists(vectors_filename)) {
+    file.remove(vectors_filename)
+    write.csv(heatmap_vectors_dataframe,vectors_filename , row.names = FALSE,  col.names = FALSE)
+  }else{
+    write.csv(heatmap_vectors_dataframe,vectors_filename , row.names = FALSE,  col.names = FALSE)
+  }
+}
+
+second_reduction_save_file("pilot_project_10shift_50width_cluster_second_reduction.csv","pilot_project_10shift_50width_heatmap_vectors_second_reduction.csv")
 
 
-# 
-# tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=TRUE, perplexity=230, theta=0.0, dims=3, normalize = FALSE)
-# d_tsne_1 = as.data.frame(tsne_model_1$Y)
-# d_tsne_1_original=d_tsne_1
-# fit_cluster_hierarchical=hclust(dist(d_tsne_1))
-# d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=number_of_clusters))
-# table(d_tsne_1_original$cl_hierarchical)
+create_tsne_model <- function(){
+  tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
+  d_tsne_1 = as.data.frame(tsne_model_1$Y)
+  d_tsne_1_original=d_tsne_1
+  fit_cluster_hierarchical=hclust(dist(d_tsne_1))
+  d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=10))
+  
+  tsne_model_1 <<- tsne_model_1
+  d_tsne_1_original <<- d_tsne_1_original
+  fit_cluster_hierarchical <<- fit_cluster_hierarchical
+  d_tsne_1 <<- d_tsne_1
+}
+
+create_tsne_model()
 
 
-tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
-d_tsne_1 = as.data.frame(tsne_model_1$Y)
-d_tsne_1_original=d_tsne_1
-fit_cluster_hierarchical=hclust(dist(d_tsne_1))
-#d_tsne_1_original$cl_hierarchical = factor(fit_cluster_hierarchical)
+table(d_tsne_1_original$cl_hierarchical)
+table(heatmap_clusters_after_second_reduction)
 
+dev.off()
+attach(mtcars)
+par(mfrow=c(2,1))
+plot(table(d_tsne_1_original$cl_hierarchical))
+plot(table(heatmap_clusters_after_second_reduction))
+plot(fit_cluster_hierarchical)
+plot(heatmap_hclust_output_after_first_reduction)
 
-tsne_model_1 = Rtsne(heatmap_vectors_matrix_after_second_reduction, check_duplicates=FALSE, pca=FALSE, perplexity=220, theta=0.0, dims=3, normalize = FALSE, max_iter = 2000)
-dim(heatmap_vectors_matrix_after_second_reduction)
+### PRE DOKUMENTACIU 
+
 heatmap_vectors_matrix_after_second_reduction[1:3,1:4]
 plot(heatmap_vectors_matrix_after_second_reduction[1,], type = "l")
 #zobrazenie prvy riadok 1:50 stlpcov, po 1 riadok 51:100 stlpcov
@@ -256,74 +358,20 @@ matplot(cbind(heatmap_vectors_matrix_after_second_reduction[1,1:50], +
                 heatmap_vectors_matrix_after_second_reduction[1,51:100]),
                   type = "l")
 
-str(tsne_model_1)
-d_tsne_1 = as.data.frame(tsne_model_1$Y)
-d_tsne_1_original=d_tsne_1
-plot(d_tsne_1_original)
-fit_cluster_hierarchical=hclust(dist(d_tsne_1))
-d_tsne_1_original$cl_hierarchical = factor(cutree(fit_cluster_hierarchical, k=10))
-#d_tsne_1_original$cl_hierarchical = factor(heatmap_clusters_after_second_reduction)
-plot(fit_cluster_hierarchical)
+names(d_tsne_1_original) <- NULL
+colnames(d_tsne_1_original) <- NULL
 
-nblucst <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss")
-plot(nblucst)
-#nblucst <- fviz_nbclust(heatmap_vectors_matrix_after_second_reduction, FUN = hcut, method = "wss")
-vector <- as.vector(nblucst$data)
-plot(as.numeric(vector[,1])*as.numeric(vector[,2]), type = "l")
-
-tsne11 <- d_tsne_1_original$cl_hierarchical
-table(tsne11)
-
-table(d_tsne_1_original$cl_hierarchical)
-table(heatmap_clusters_after_second_reduction)
 
 ## https://stackoverflow.com/questions/40821591/how-to-print-the-optimal-number-of-clusters-using-fviz-nbclust
 ## http://www.sthda.com/english/articles/29-cluster-validation-essentials/96-determiningthe-optimal-number-of-clusters-3-must-know-methods/
-nblucst_hclust <- fviz_nbclust(d_tsne_1,k.max = 20, FUN = hcut, method = "wss", print.summary = TRUE)
-nblucst_hclust_data <- nblucst_hclust$data
-#max_cluster_hclust <- as.numeric(nblucst_hclust_data$clusters[which.max(nblucst_hclust_data$y)])
-#plot(max_cluster_hclust)
-plot(nblucst_hclust)
 
-
-# nbclust_calculation=function(data,kmax,funct,method,distance)  
-# {
-#   dist = dist(data,distance)
-#   nbclust <- fviz_nbclust(data,k.max = kmax, FUN = funct, method = method, print.summary = TRUE, diss = dist)
-# }
-# 
-# best_number_of_clusters=function(data,ylab,title,subtitle)  
-# {
-#   delta_result = data.frame(col1 = numeric())
-#   for (i in 1:length(data$clusters)) {
-#     if (i > length(data$clusters) - 2) {
-#       break
-#     }
-#     delta_i_1 = data$y[i] - data$y[i+1]
-#     delta_i_2 = data$y[i] - data$y[i+2]
-#     new_row <- c(delta_i_1/delta_i_2)
-#     delta_result[nrow(delta_result) + 1, ] <- new_row
-#   }
-#   best_cluster = which(delta_result == min(delta_result, na.rm = TRUE))
-#   yvalue = data$y[best_cluster]
-#   plot(data$y, type = "b",  xlab = "Number of clusters k", ylab = ylab)
-#   title(main = title,cex.main = 1.5)
-#   mysubtitle = subtitle
-#   mtext(side = 3, line = 0.25, at = 9.8, adj = 0, mysubtitle)
-#   abline(v = best_cluster,h = yvalue, col = "blue", lwd = 1,lty = "1342")
-# }
-dev.off()
-
-d_tsne_matrix = as.matrix(d_tsne_1_original)
-attach(mtcars)
-par(mfrow=c(2,3))
 nbclust_calculation_test=function(data,kmax,funct,method,distance)  
 {
   if (distance == 1) {
-    d_tsne_matrix = as.matrix(d_tsne_1_original)
-    d_tsne_1_original_center = colMeans(d_tsne_matrix)
-    d_tsne_1_original_covariance = cov(d_tsne_matrix)
-    mahalanobis_dist <- mahalanobis(x = d_tsne_matrix,center = d_tsne_1_original_center,cov = d_tsne_1_original_covariance)
+    d_tsne_matrix = as.matrix(d_tsne_1_original[1:3])
+    d_tsne_1_center = colMeans(d_tsne_matrix)
+    d_tsne_1_covariance = cov(d_tsne_matrix)
+    mahalanobis_dist <- mahalanobis(x = d_tsne_matrix,center = d_tsne_1_center,cov = d_tsne_1_covariance)
     fviz_nbclust(d_tsne_1,k.max = kmax, FUN = funct, method = method, print.summary = TRUE, diss = mahalanobis_dist)
   }else{
   dist = dist(data,distance)
@@ -352,76 +400,113 @@ best_number_of_clusters_test=function(data,ylab,title,subtitle)
   mtext(side = 3, line = 0.25, at = 9.5, adj = 0, mysubtitle)
   abline(v = best_cluster,h = yvalue, col = "blue", lwd = 1,lty = "1342")
 }
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","euclidean")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","maximum")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Maximum")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","manhattan")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Manhattan")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","canberra")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Canberra")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","minkowski")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Minkowski")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss", 1)
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Mahalanobis")
 
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","euclidean")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Euclidean")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","maximum")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Maximum")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","manhattan")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Manhattan")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","canberra")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Canberra")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","minkowski")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Minkowski")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss", 1)
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Mahalanobis")
+nbclust_wss_hcut <- function(){
+  dev.off()
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","euclidean")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","maximum")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Maximum")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","manhattan")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Manhattan")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","canberra")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Canberra")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","minkowski")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Minkowski")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss", 1)
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Mahalanobis")
 
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","euclidean")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Euclidean")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","maximum")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Maximum")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","manhattan")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Manhattan")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","canberra")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Canberra")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","minkowski")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Minkowski")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss", 1)
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Mahalanobis")
+}
 
-#https://en.wikibooks.org/wiki/Data_Mining_Algorithms_In_R/Clustering/CLARA
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","euclidean")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Euclidean")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","maximum")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Maximum")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","manhattan")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Manhattan")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","canberra")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Canberra")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","minkowski")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Minkowski")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss", 1)
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Mahalanobis")
+nbclust_wss_hcut()
 
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","euclidean")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Euclidean")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","maximum")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Maximum")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","manhattan")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Manhattan")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","canberra")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Canberra")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","minkowski")
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Minkowski")
-nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss", 1)
-nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Mahalanobis")
+nbclust_wss_kmeans <- function(){
+  dev.off()
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","euclidean")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Euclidean")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","maximum")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Maximum")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","manhattan")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Manhattan")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","canberra")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Canberra")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss","minkowski")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Minkowski")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, kmeans, "wss", 1)
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-means","Mahalanobis")
+}
 
-dev.off()
+nbclust_wss_kmeans()
 
-attach(mtcars)
-par(mfrow=c(3,2))
+
+nbclust_wss_pam <- function(){
+  dev.off()
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","euclidean")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Euclidean")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","maximum")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Maximum")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","manhattan")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Manhattan")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","canberra")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Canberra")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss","minkowski")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Minkowski")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::pam, "wss", 1)
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","K-medoids","Mahalanobis")
+}
+
+nbclust_wss_pam()
+
+
+nbclust_wss_clara <- function(){
+  dev.off()
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  #https://en.wikibooks.org/wiki/Data_Mining_Algorithms_In_R/Clustering/CLARA
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","euclidean")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Euclidean")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","maximum")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Maximum")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","manhattan")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Manhattan")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","canberra")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Canberra")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss","minkowski")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Minkowski")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::clara, "wss", 1)
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Clara","Mahalanobis")
+}
+
+nbclust_wss_clara()
+
+nbclust_wss_fanny <- function(){
+  dev.off()
+  attach(mtcars)
+  par(mfrow=c(2,3))
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","euclidean")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Euclidean")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","maximum")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Maximum")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","manhattan")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Manhattan")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","canberra")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Canberra")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss","minkowski")
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Minkowski")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, cluster::fanny, "wss", 1)
+  nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Fanny","Mahalanobis")
+  
+}
+
+nbclust_wss_fanny()
+
+
 
 nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "silhouette","euclidean")
 nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
@@ -755,7 +840,7 @@ plot(nbclust_fanny_silhouette_mahal)
 #install.packages("plot3D")
 library(plot3D)
 #plot3d(d_tsne_1)
-
+########### https://www.r-bloggers.com/2017/03/playing-with-dimensions-from-clustering-pca-t-sne-to-carl-sagan/
 plot_cluster=function(data, var_cluster,palette)  
 {
   ggplot(data, aes_string(x="V1", y="V2",z="V3",color=var_cluster)) +
@@ -906,3 +991,10 @@ d = sqrt(colSums(u^2))
 plot(v)
 plot(y[322,])
 nrow(v)
+
+
+
+
+## RLANG FIX
+remove.packages("rlang")
+install.packages("rlang")
