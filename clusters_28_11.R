@@ -1,7 +1,7 @@
 options(java.parameters = "- Xmx1024m")
 library(janitor)
-library(factoextra)
 library(ggplot2) 
+library(factoextra)
 library(ape)
 library(plyr)
 library(dplyr)
@@ -11,16 +11,29 @@ library(ggforce)
 library(xlsx)
 library(Rtsne)
 library(factoextra)
-library(ggplot2)
 library(ggpubr)
 library(ape)
 library(RColorBrewer)
 library(functional)
 library(gsubfn)
 library(readxl)
+library(plotly)
+library(htmlwidgets)
+library(purrr)
+library(V8)
+library(rjson)
+#install.packages("V8")
+#install.packages("htmlwidgets")
+#install.packages("plotly")
+#install.packages("dplyr")
 #library(tidyverse)
 working_directory <- getwd()
 setwd(getwd())
+
+attach(mtcars)
+par(mfrow=c(2,1))
+dev.off()
+
 names <- c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10",
            "V11","V12","V13","V14","V15","V16","V17","V18","V19","V20","V21","V22","V23","V24","V25",
            "V26","V27","V28","V29","V30","V31","V32","V33","V34","V35","V36","V37","V38","V39","V40",
@@ -36,7 +49,8 @@ methods <- c("wss","silhouette","gap_stat")
 set_window_width = 50                                        #Šírka okna
 set_step = 10                                                #Posun
 set_number_of_clusters = 10                                  #Počet zhlukov
-set_original_heatmap <- read.csv(file.choose(), header=T)              #Načítanie teplotnej mapy z CSV súboru z programu p. Krnáča, mydata = teplotna_mapa
+#set_original_heatmap <- read.csv(file.choose(), header=T, sep = "\t")              #Načítanie teplotnej mapy z CSV súboru z programu p. Krnáča, mydata = teplotna_mapa
+set_original_heatmap <- read.csv(file.choose(), header=T)
 column_names <- head(set_original_heatmap,0)                           #Vlož názvy V1 až V50 ako názvy stĺpcov
 
 
@@ -103,8 +117,17 @@ create_first_clustering <- function(data,method,clusters){
 
 create_first_clustering(heatmap_vectors_matrix_base,"complete",set_number_of_clusters)
 
+graph_first_reduction = fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_clusters_base), stand = FALSE,
+                                     ggtheme = theme_minimal(),
+                                     alpha = 0.2)
+
+ggplotly(graph_first_reduction)
+
 first_reduction <- function(heatmap_list,heatmap_clusters,heatmap_vectors,clusters){
   ### ODSTRANENIE ZHLUKOV VELKOSTI 1
+  counter_anomaly = 1
+  min_index = 0
+  max_index = 0
   removed_columns_first_reduction = 0
   rows_in_cluster = 0
   current_cluster = 1
@@ -112,6 +135,7 @@ first_reduction <- function(heatmap_list,heatmap_clusters,heatmap_vectors,cluste
   heatmap_vectors_list_after_first_reduction = heatmap_list
   heatmap_clusters_after_first_reduction = heatmap_clusters
   heatmap_vectors_matrix_after_first_reduction = heatmap_vectors
+  anomalous_columns_first_reduction <- list()
   for (i in 1:clusters) {
     for (j in 1:length(heatmap_clusters_after_first_reduction)) {
       if (heatmap_clusters_after_first_reduction[j] == current_cluster) {          #Musi byt taketo pocitadlo zhluku inac by vratil anomali na indexe 1 pre kazdy zhluk
@@ -122,6 +146,10 @@ first_reduction <- function(heatmap_list,heatmap_clusters,heatmap_vectors,cluste
         message("Anomaly in cluster: ", i, ", at index: ", row_index)
         heatmap_vectors_list_after_first_reduction[[row_index]] <- NULL
         heatmap_clusters_after_first_reduction <- heatmap_clusters_after_first_reduction[-c(row_index)]
+        min_index <- (j - 1) * set_step + 1 # x = (a - 1) * p + 1, a - aktualny index, p - posun
+        max_index <- min_index + (set_window_width - 1) # y = x + (w - 1), x - min_index, w - sirka okna
+        anomalous_columns_first_reduction[[counter_anomaly]] <- set_original_heatmap[min_index:max_index,]
+        counter_anomaly <- counter_anomaly + 1
         if (removed_columns_first_reduction == 0 || removed_columns_first_reduction < 0) {
           removed_columns_first_reduction <- heatmap_vectors_matrix_after_first_reduction[row_index,]
         }else{
@@ -134,6 +162,7 @@ first_reduction <- function(heatmap_list,heatmap_clusters,heatmap_vectors,cluste
     row_index = 0
     current_cluster <- current_cluster + 1
   }
+  anomalous_columns_first_reduction <<- anomalous_columns_first_reduction
   heatmap_vectors_list_after_first_reduction <<- heatmap_vectors_list_after_first_reduction
   heatmap_clusters_after_first_reduction <<- heatmap_clusters_after_first_reduction
   heatmap_vectors_matrix_after_first_reduction <<- heatmap_vectors_matrix_after_first_reduction
@@ -159,6 +188,13 @@ create_second_clustering <- function(data,method,clusters){
 }
 
 create_second_clustering(heatmap_vectors_matrix_after_first_reduction,"complete",set_number_of_clusters)
+
+graph_second_clustering = fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE,
+                                     ggtheme = theme_minimal(),
+                                     alpha = 0.2)
+
+ggplotly(graph_first_reduction)
+
 
 first_reduction_save_file <- function(clusters_filename,vectors_filename){
   ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
@@ -242,6 +278,7 @@ calculate_radius(heatmap_vectors_matrix_after_first_reduction,heatmap_clusters_a
 
 
 find_points_outside <- function(data,clusters_data,clusters){
+  counter_anomaly = 1
   index_to_remove = 0
   i = 1
   index_to_to_remove = 0
@@ -249,6 +286,7 @@ find_points_outside <- function(data,clusters_data,clusters){
   heatmap_clusters_after_second_reduction = heatmap_clusters_after_first_reduction
   heatmap_vectors_matrix_after_second_reduction = heatmap_vectors_matrix_after_first_reduction
   removed_columns_second_reduction = data.frame()
+  anomalous_columns_second_reduction <- list()
   for (j in 1:set_number_of_clusters) {
     message("Novy zhluk: ", j)
     outer_bound = length(clusters_list[[j]])
@@ -269,6 +307,11 @@ find_points_outside <- function(data,clusters_data,clusters){
         temporary_vector = temporary_vector[-i]
         clusters_list[[j]] <- temporary_vector 
         outer_bound = outer_bound - 1
+        
+        min_index <- (j - 1) * set_step + 1 # x = (a - 1) * p + 1, a - aktualny index, p - posun
+        max_index <- min_index + (set_window_width - 1) # y = x + (w - 1), x - min_index, w - sirka okna
+        anomalous_columns_second_reduction[[counter_anomaly]] <- set_original_heatmap[min_index:max_index,]
+        counter_anomaly <- counter_anomaly + 1
       }
       if (i == outer_bound) {
         i = 1
@@ -282,21 +325,105 @@ find_points_outside <- function(data,clusters_data,clusters){
       heatmap_vectors_matrix_after_second_reduction <<- heatmap_vectors_matrix_after_second_reduction
       heatmap_clusters_after_second_reduction <<- heatmap_clusters_after_second_reduction
       removed_columns_second_reduction <<- removed_columns_second_reduction
+      anomalous_columns_second_reduction <<- anomalous_columns_second_reduction
     }
 }
 
 
 find_points_outside(heatmap_vectors_matrix_after_first_reduction,heatmap_clusters_after_first_reduction,set_number_of_clusters)
+table(heatmap_clusters_after_second_reduction)
+
+graph_first_reduction = fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE,
+                                      ggtheme = theme_minimal(),
+                                      alpha = 0.2)
 
 
-graph_first_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE)
+
 graph_second_reduction <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE)
+#dataframe_first_reduction <- as.data.frame(graph_first_reduction)
+##graph_first_reduction %>%
+##  ggplotly() %>%
+##  highlight(
+##    on = "plotly_click", 
+##    selectize = TRUE, 
+##    dynamic = TRUE, 
+##    persistent = TRUE
+##  )
+graph_first_reduction
+graph_first_reduction %>%
+  ggplotly() %>%
+  onRender("
+    function(el) { 
+      el.on('plotly_hover', function(d) { 
+        console.log('Hover: ', d); 
+      });
+      el.on('plotly_click', function(d) { 
+        console.log('Click: ', d);
+      });
+      el.on('plotly_selected', function(d) { 
+        console.log('Select: ', d); 
+      });
+    }
+  ")
+
+ggplotly(graph_first_reduction) %>%
+  onRender("
+    function(el) { 
+      el.on('plotly_click', function(d) { 
+        console.log('Click: ', d.points[0]);
+      });
+    }
+  ")
+
+
+ctx <- v8()
+ctx$assign("graph_first_reduction",graph_first_reduction$data)
+
+ctx$get("graph_first_reduction")
+#ctx$console()
+
+
+result <- capture.output()
+
+graph_first_reduction %>%
+  onRender(readLines("js/annotate.js"))
+  
+matrix_as_dataframe = as.data.frame(heatmap_vectors_matrix_after_first_reduction)
+
+
+testing_custom_data = graph_first_reduction$data
+testing_custom_data = map2(graph_first_reduction$data$name, graph_first_reduction$data$cluster, ~.x, ~.y)  
+testing_custom_data_list = as.list(testing_custom_data)
+aa <- t(heatmap_clusters_after_first_reduction)
+
+
+
+
+testing_graph <- graph_first_reduction$data %>%
+  group_by(graph_first_reduction$data$cluster) %>%
+  highlight_key(~graph_first_reduction$data$name) %>%
+  plot_ly(x = ~graph_first_reduction$data$x, y = ~graph_first_reduction$data$y, hoverinfo = "name", type = "scatter", mode = "markers+text") %>%
+  add_markers(
+    text = graph_first_reduction$data$name,
+    customdata = graph_first_reduction$data$name,
+  )%>%
+  add_lines(customdata = ~map2(matrix_as_dataframe, aa, ~list(.x, .y))) %>%
+  highlight("plotly_hover")
+
+onRender(testing_graph,readLines("js/annotate.js"))
+
+
+
+
+
+  
+
+#plot_ly(graph_first_reduction)
 dev.off()
 attach(mtcars)
 par(mfrow=c(2,1))
 plot(graph_first_reduction)
 plot(graph_second_reduction)
-
 
 second_reduction_save_file <- function(clusters_filename,vectors_filename){
   ###### UKLADANIE SUBOROV AKO TREBA BEZ RIADKOV STLPCOV, Z MATICE NA DATAFRAME
@@ -337,9 +464,8 @@ create_tsne_model <- function(){
 
 create_tsne_model()
 
-
-table(d_tsne_1_original$cl_hierarchical)
-table(heatmap_clusters_after_second_reduction)
+plot(table(d_tsne_1_original$cl_hierarchical), title("TSNE"),ylab = "Number of observations", xlab = "Clusters")
+plot(table(heatmap_clusters_after_second_reduction), title("Clustering"),ylab = "Number of observations", xlab = "Clusters")
 
 dev.off()
 attach(mtcars)
@@ -361,11 +487,31 @@ matplot(cbind(heatmap_vectors_matrix_after_second_reduction[1,1:50], +
 names(d_tsne_1_original) <- NULL
 colnames(d_tsne_1_original) <- NULL
 
+run <- function() {
+  eval(parse(text = rstudioapi::primary_selection(
+    rstudioapi::getSourceEditorContext())$text))
+}
 
+show_clusters=function(){
+  message("Zhluky po prvom zhlukovaní.")
+  table(heatmap_clusters_base)
+  message("Zhluky po druhom zhlukovaní.")
+  table(heatmap_clusters_after_first_reduction)
+  message("Zhluky po treťom zhlukovaní.")
+  table(heatmap_clusters_after_second_reduction)
+}
+show_clusters()
+
+graph <- fviz_cluster(list(data=heatmap_vectors_matrix_base, cluster = heatmap_clusters_base), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
+graph 
+graph2 <- fviz_cluster(list(data=heatmap_vectors_matrix_after_first_reduction, cluster = heatmap_clusters_after_first_reduction), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
+graph2 
+graph3 <- fviz_cluster(list(data=heatmap_vectors_matrix_after_second_reduction, cluster = heatmap_clusters_after_second_reduction), stand = FALSE, labelsize = 0) #Vykreslenie zhlukov z vektorovej mapy, zhlukov a s vypnutou štandardizáciou, ak chceme definovať osi použiť axes = c(x,y)
+graph3 
 ## https://stackoverflow.com/questions/40821591/how-to-print-the-optimal-number-of-clusters-using-fviz-nbclust
 ## http://www.sthda.com/english/articles/29-cluster-validation-essentials/96-determiningthe-optimal-number-of-clusters-3-must-know-methods/
 
-nbclust_calculation_test=function(data,kmax,funct,method,distance)  
+nbclust_calculation=function(data,kmax,funct,method,distance)  
 {
   if (distance == 1) {
     d_tsne_matrix = as.matrix(d_tsne_1_original[1:3])
@@ -379,7 +525,7 @@ nbclust_calculation_test=function(data,kmax,funct,method,distance)
   }
 }
 
-best_number_of_clusters_test=function(data,ylab,title,subtitle)  
+best_number_of_clusters=function(data,ylab,title,subtitle)  
 {
   delta_result = data.frame(col1 = numeric())
   for (i in 1:length(data$clusters)) {
@@ -397,29 +543,30 @@ best_number_of_clusters_test=function(data,ylab,title,subtitle)
   plot(data$y, type = "b",  xlab = "Number of clusters k", ylab = ylab)
   title(main = title,cex.main = 1.5)
   mysubtitle = subtitle
-  mtext(side = 3, line = 0.25, at = 9.5, adj = 0, mysubtitle)
+  mtext(side = 3, line = 0.25, at = 14, adj = 0, mysubtitle)
   abline(v = best_cluster,h = yvalue, col = "blue", lwd = 1,lty = "1342")
 }
+dev.off()
+attach(mtcars)
+par(mfrow=c(2,3))
 
 nbclust_wss_hcut <- function(){
-  dev.off()
-  attach(mtcars)
-  par(mfrow=c(2,3))
-  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","euclidean")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss","euclidean")
   nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
-  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","maximum")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss","maximum")
   nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Maximum")
-  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","manhattan")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss","manhattan")
   nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Manhattan")
-  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","canberra")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss","canberra")
   nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Canberra")
-  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss","minkowski")
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss","minkowski")
   nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Minkowski")
-  nbclust_wss = nbclust_calculation_test(d_tsne_1, 20, hcut, "wss", 1)
+  nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss", 1)
   nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Mahalanobis")
 
 }
-
+nbclust_wss = nbclust_calculation_test(d_tsne_1, 30, hcut, "wss","euclidean")
+nbclust_best_wss = best_number_of_clusters_test(nbclust_wss$data,"Total Within Sum of Square","Hierarchical","Euclidean")
 nbclust_wss_hcut()
 
 nbclust_wss_kmeans <- function(){
@@ -868,6 +1015,180 @@ plot_cluster=function(data, var_cluster,palette)
 plot_h=plot_cluster(d_tsne_1_original, "cl_hierarchical", "Set3")
 plot_h
 abline(v = 0)
+
+
+
+####################################################################################
+##################          SHINY          #########################################
+####################################################################################
+
+
+library(shiny)
+library(plotly)
+library(dplyr)
+library(readr)
+library(RColorBrewer)
+load('ezData.rdata')
+
+ui <- fluidPage(
+  plotlyOutput("scatterplot"),
+  plotlyOutput("heatmap", height = 1000),
+  dataTableOutput("datatable")
+  # tableOutput("datatable")
+)
+
+server <- function(input, output, session) {
+  
+  trunc_x <- trunc(graph_first_reduction$data$x*10^0)/10^0
+  trunc_y <- trunc(graph_first_reduction$data$y*10^0)/10^0
+  heatmap_clicked = 0
+  mapColor <- brewer.pal(n = 9,name = 'OrRd')
+  
+  kontrola_dat <- function(data) {  #funkcia y krnacovho programu, neviem ci treba
+    data[is.na(data)] = "";
+    return(data);
+  }
+  
+  odstran_id_stlpce <- function(data) {   
+    
+    data <- data[,-c(1,2,3)]
+    
+    return(data);
+  }
+  
+  # for maintaining the state of drill-down variables
+  scatterplot <- reactiveVal()
+  heatmap <- reactiveVal()
+  
+  # when clicking on a category, 
+  observeEvent(event_data("plotly_click", source = "scatterplot"), {
+    scatterplot(event_data("plotly_click", source = "scatterplot")$x)
+    heatmap(NULL)
+  })
+  
+  observeEvent(event_data("plotly_click", source = "heatmap"), {
+    heatmap(
+      event_data("plotly_click", source = "heatmap")$x
+    )
+  })
+  
+  
+  output$scatterplot <- renderPlotly({
+    scatterplot <- plot_ly(data = graph_first_reduction$data, x = ~graph_first_reduction$data$x, y = ~graph_first_reduction$data$y, 
+                           type = "scatter", mode = "markers", source = "scatterplot", color = ~graph_first_reduction$data$cluster,hoverinfo = 'text',
+                           text = ~paste(graph_first_reduction$data$name, graph_first_reduction$data$cluster)) %>% add_text(textposition = "top right") %>%
+      layout(xaxis = list(title = "X"), yaxis = list(title = "Y"))
+  })
+  
+  output$heatmap <- renderPlotly({
+    req(scatterplot)
+    d = event_data("plotly_click", source = "scatterplot")
+    if (is.null(d)) return(NULL)
+    d_x <- d$x
+    d_y <- d$y
+    d_x <- trunc(d_x*10^0)/10^0
+    d_y <- trunc(d_y*10^0)/10^0
+    point <<- which(trunc_x == d_x & trunc_y == d_y)
+    heatmap_data = 0
+    as.matrix(heatmap_data)
+    min_index <<- (point - 1) * set_step + 1
+    max_index <<- min_index + (set_window_width - 1)
+    heatmap_data <<- t(set_original_heatmap[min_index:max_index,])
+    #heatmap_clicked <- heatmaply(heatmap_data, source = "heatmap", plot_method = c("plotly"))
+    # plot_ly(z = heatmap_data, type = "heatmap")
+    #plot_ly(x = rownames(heatmap_data), y = colnames(heatmap_data),z = heatmap_data, type = "heatmap")
+    
+    # heatmap_clicked <<- plot_ly(
+    #  z = t(as.matrix(set_original_heatmap[min_index:max_index,])), type = "heatmap", source = "heatmap",colorscale = mapColor) %>%
+    #    layout(xaxis = list(dtick = 1,tick0 = 1,tickmode = "linear",title = "Časové okno",range = c(1, 50)), yaxis = list(dtick = 1,tickmode = "linear", title = "Kategória",range = c(1, 50)))
+    
+    heatmap_clicked <<- plot_ly(
+      z = t(as.matrix(set_original_heatmap[min_index:max_index,])), 
+      type = "heatmap",
+      source = "heatmap",
+      colorscale = mapColor,
+      x = seq(1, ncol(set_original_heatmap[min_index:max_index,])), 
+      y = seq(1, nrow(set_original_heatmap[min_index:max_index,])),) %>%
+      layout(
+        xaxis = list(
+          tickvals = 1:50,
+          dtick = 1,
+          title = "Časové okno",
+          range = c(1, 50) 
+        ),
+        yaxis = list(
+          tickvals = 1:50,
+          dtick = 1, 
+          title = "Kategória", 
+          range = c(1, 50)
+        )
+      )
+    
+    
+    heatmap_clicked <<- heatmap_clicked
+  })
+  
+  
+  output$datatable <- renderDataTable({
+    d_heatmap = event_data("plotly_click", source = "heatmap")
+    if (is.null(heatmap())) return(NULL)
+    d_heatmap$point <- point
+    
+    kateg <- d_heatmap$y
+    sirka <- 2
+    posun <- 0.5
+    
+    #t0 = ezData$frame.time_relative[1] + posun;  #zaciatok, cize 0 + posun
+    t0 = (min_index + d_heatmap$x) * posun - posun
+    #t1 = t0 + sirka;       # zaciatok + sirka
+    t1 = t0 + sirka / set_window_width    
+    #message(kateg)
+    # message(d_heatmap$y)
+    # message(d_heatmap$x)
+    # message(t0)
+    # message(t1)
+    
+    
+    # ak by som chcel celu mapu tak nedavat / set_window_width
+    # a nedavat v subset(kategorie == kateg) ale len subset(ezData)
+    # ak by som chcel riadok, subset nechat tak a v t1 nedelit / set_window_width
+    # ak by som chcel stlpec nie subset(ezData,kategorie == kateg), ale subset(ezData) a t1 nemenit
+    
+    data1 <- subset(ezData,kategorie == kateg)
+    
+    ind <- which(data1$frame.time_relative >= t0 & data1$frame.time_relative <= t1);  #indexy paketov vo vybranom casovom okne
+    #message(ind)
+    
+    vysledne_data <- data1[ind,];  # vybranie paketov, ktore sa nachadzaju len v casovom okne
+    # data <- kontrola_dat(data)   
+    vysledne_data <- odstran_id_stlpce(vysledne_data)  # odstranenie 3 stlpcov:  frame.number, frame.time, frame.time_relative, aby som sa zbavil 
+    vysledne_data <- plyr::count(vysledne_data)
+    # unikatnych hodnot a mohol scitavat rovnake pakety
+    
+    #vysledne_data <- plyr::count(data)  # spocitanie rovnakych paketov dokopy, vo premennej freq je ich pocet
+    
+    
+    #vysledne_data_skratene <- subset(vysledne_data,kategorie == kateg)  # vybranie konkretnej kategorie, takze toto su uz vysledne hodnoty
+    #message(vysledne_data_skratene)
+    
+    
+    #d_heatmap
+    #heatmap_data
+    
+  })
+  
+  # output$datatable <- renderTable({
+  #   d = event_data("plotly_click", source = "heatmap")
+  #  if (is.null(heatmap())) return(NULL)
+  #    d$x <- d$x + 1
+  #   heatmap_data[,d$x]4
+  
+  # })
+}
+
+shinyApp(ui, server)
+
+
 ####################################################################################
 ##################          TESTING           ######################################
 ####################################################################################
